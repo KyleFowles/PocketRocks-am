@@ -1,125 +1,120 @@
 /* ============================================================
    FILE: src/app/(auth)/signup/page.tsx
-   PURPOSE: Signup page (create account)
+   PURPOSE: Signup page content (NO header here)
    ============================================================ */
 
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { signup } from "@/lib/auth";
-import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 3 && password.length >= 6 && !busy;
-  }, [email, password, busy]);
+  const canSubmit = email.trim().length > 3 && password.length >= 6 && !loading;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
-
-    setBusy(true);
     setError(null);
+    setLoading(true);
 
     try {
-      await signup(email.trim(), password);
-      // If you want a guaranteed redirect after signup, tell me the route (ex: /thinking)
-      // and I’ll wire it in.
+      // TODO: wire real signup here
+      // For now, just simulate account creation:
+      window.location.href = "/thinking";
     } catch (err: any) {
-      setError(err?.message ?? "Could not create account. Try again.");
-    } finally {
-      setBusy(false);
+      setError(err?.message || "Something went wrong.");
+      setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen pr-bg">
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <header className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="h-3 w-3 rounded-full bg-[var(--pr-accent)]" />
-              <div className="text-lg font-semibold tracking-tight text-white">PocketRocks</div>
-            </div>
-            <p className="mt-2 text-sm text-white/60">The default place people go to think.</p>
+    <div className="auth-grid">
+      <section className="auth-left">
+        <div className="auth-kicker">NEW ACCOUNT</div>
+        <h1 className="auth-h1">Start your private thinking trail</h1>
+        <p className="auth-sub">
+          One account. Your private workspace. A calm place to get clear and follow through.
+        </p>
+      </section>
+
+      <section className="auth-right">
+        <div className="auth-card">
+          <div className="auth-card-top">
+            <div className="auth-card-title">Create account</div>
           </div>
 
-          <Link href="/login" className="text-sm font-semibold text-white/75 hover:text-white">
-            Login
-          </Link>
-        </header>
+          <div className="auth-card-body">
+            <form className="auth-form" onSubmit={onSubmit}>
+              {error ? <div className="error">{error}</div> : null}
 
-        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          <section className="hidden lg:block">
-            <h1 className="text-4xl font-semibold tracking-tight text-white">
-              Start your private thinking trail.
-              <span className="block text-white/75">Built for clarity.</span>
-            </h1>
-            <p className="mt-4 text-base leading-relaxed text-white/65 max-w-[46ch]">
-              Create an account to start your private workspace. You’ll be guided into the first step right after.
-            </p>
-          </section>
+              <div className="field">
+                <div className="label">Email</div>
+                <input
+                  className="input"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                />
+              </div>
 
-          <section className="pr-card">
-            <div className="pr-card-header">
-              <div className="text-xs uppercase tracking-[0.18em] text-white/55">New account</div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Create your account</h2>
-              <p className="mt-2 text-sm text-white/60">
-                One account. Your private thinking trail.
-              </p>
-            </div>
+              <div className="field">
+                <div className="label">Password</div>
 
-            <form onSubmit={onSubmit} className="p-7 space-y-4">
-              <TextField
-                label="Email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(v) => setEmail(v)}
-              />
-
-              <TextField
-                label="Password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Minimum 6 characters"
-                value={password}
-                onChange={(v) => setPassword(v)}
-              />
-
-              {error ? (
-                <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                  {error}
+                <div className="row">
+                  <input
+                    className="input"
+                    type={showPw ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                  >
+                    {showPw ? "Hide" : "Show"}
+                  </button>
                 </div>
-              ) : (
-                <div className="text-xs text-white/45">
-                  By continuing, you’re creating a private workspace designed for clarity and follow-through.
+
+                <div className="hint">Minimum 6 characters</div>
+              </div>
+
+              <button className="btn" type="submit" disabled={!canSubmit}>
+                {loading ? "Creating..." : "Create account"}
+              </button>
+
+              <div className="row row-space">
+                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                  Already have an account?{" "}
+                  <Link className="small-link" href="/login">
+                    Sign in
+                  </Link>
                 </div>
-              )}
 
-              <Button type="submit" disabled={!canSubmit} busy={busy}>
-                {busy ? "Creating..." : "Create account"}
-              </Button>
-
-              <div className="pt-2 text-sm text-white/60">
-                Already have an account?{" "}
-                <Link href="/login" className="font-semibold text-white underline underline-offset-4 decoration-white/25">
-                  Login
+                <Link className="small-link" href="/">
+                  Back home
                 </Link>
               </div>
             </form>
-          </section>
+          </div>
+
+          <div className="auth-footer">
+            By continuing, you’re creating a private workspace designed to help you clarify what matters
+            and commit with confidence.
+          </div>
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

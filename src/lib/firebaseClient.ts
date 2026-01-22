@@ -1,6 +1,6 @@
 /* ============================================================
    FILE: src/lib/firebaseClient.ts
-   PURPOSE: Firebase client SDK (Auth + Firestore) for browser
+   PURPOSE: Firebase client initialization (Auth, Firestore)
    ============================================================ */
 
 import { initializeApp, getApps } from "firebase/app";
@@ -16,6 +16,17 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-export const app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export function getFirebaseApp() {
+  if (!getApps().length) initializeApp(firebaseConfig);
+  return getApps()[0]!;
+}
+
+export function getFirebaseAuth() {
+  getFirebaseApp();
+  return getAuth();
+}
+
+export function getFirebaseDb() {
+  getFirebaseApp();
+  return getFirestore();
+}

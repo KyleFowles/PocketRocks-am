@@ -1,24 +1,10 @@
 /* ============================================================
-   FILE: src/app/layout.tsx
-   PURPOSE: App root layout
+   FILE: src/app/(auth)/login/layout.tsx
+   PURPOSE: Login layout — content only (no brand/header)
    ============================================================ */
 
-import "./globals.css";
-import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
-export const metadata: Metadata = {
-  title: "PocketRocks",
-  description: "The default place people go to think.",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
+export default function LoginLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }
