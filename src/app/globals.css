@@ -1,26 +1,57 @@
-@import "tailwindcss";
+/* ============================================================
+   FILE: src/app/globals.css
+   PURPOSE: Global styles + Tailwind
+   ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --pr-bg0: #070a0f;
+  --pr-bg1: #0b1020;
+  --pr-card: rgba(255, 255, 255, 0.06);
+  --pr-card2: rgba(255, 255, 255, 0.08);
+  --pr-border: rgba(255, 255, 255, 0.12);
+  --pr-border2: rgba(255, 255, 255, 0.18);
+  --pr-text: rgba(255, 255, 255, 0.92);
+  --pr-muted: rgba(255, 255, 255, 0.62);
+  --pr-faint: rgba(255, 255, 255, 0.44);
+  --pr-accent: #ff7900; /* PocketRocks orange */
+  --pr-accent2: #f04e23;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--pr-text);
+  background: radial-gradient(1200px 700px at 20% 10%, rgba(255, 121, 0, 0.20), transparent 55%),
+    radial-gradient(900px 600px at 80% 15%, rgba(240, 78, 35, 0.16), transparent 55%),
+    radial-gradient(1000px 800px at 50% 90%, rgba(68, 87, 119, 0.18), transparent 55%),
+    linear-gradient(180deg, var(--pr-bg0), var(--pr-bg1));
+}
+
+/* Subtle “film grain” for premium depth (very light) */
+.pr-grain {
+  position: relative;
+}
+.pr-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  border-radius: inherit;
+}
+
+/* Focus ring: confident but not loud */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 121, 0, 0.25);
+  border-radius: 12px;
 }
