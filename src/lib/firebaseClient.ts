@@ -1,11 +1,14 @@
 /* ============================================================
    FILE: src/lib/firebaseClient.ts
    PURPOSE: Firebase client initialization (Auth, Firestore)
+   NOTES:
+   - Exports BOTH singleton objects (app/auth/db) AND helper getters
+   - Fixes build errors where other modules import { auth } / { db }
    ============================================================ */
 
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -16,17 +19,25 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+function initApp(): FirebaseApp {
+  // Only initialize once (prevents Next.js dev hot-reload duplicates)
+  return getApps().length ? getApp() : initializeApp(firebaseConfig);
+}
+
+// ✅ Singleton exports (what your other files expect)
+export const app = initApp();
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app);
+
+// ✅ Backward-compatible helper functions (keep your existing API)
 export function getFirebaseApp() {
-  if (!getApps().length) initializeApp(firebaseConfig);
-  return getApps()[0]!;
+  return app;
 }
 
 export function getFirebaseAuth() {
-  getFirebaseApp();
-  return getAuth();
+  return auth;
 }
 
 export function getFirebaseDb() {
-  getFirebaseApp();
-  return getFirestore();
+  return db;
 }

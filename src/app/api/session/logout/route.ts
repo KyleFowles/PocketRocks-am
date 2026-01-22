@@ -1,23 +1,77 @@
 /* ============================================================
-   FILE: src/app/api/session/logout/route.ts
-   PURPOSE: Clear session cookie
+   FILE: src/app/session/login/route.ts
+   PURPOSE: Exchange a Firebase ID token for a secure HTTP-only
+            session cookie (server-side) and set it in the browser
+   NOTES:
+   - Next.js 16+: cookies() is async and must be awaited
+   - Uses firebase-admin to create session cookies
    ============================================================ */
 
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
+import admin from "firebase-admin";
 
 const COOKIE_NAME = "pr_session";
 
-export async function POST() {
-  cookies().set(COOKIE_NAME, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+// 7 days (milliseconds) -> passed as { expiresIn } to createSessionCookie
+const EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-  return NextResponse.json({ ok: true });
+function getPrivateKey() {
+  const k = process.env.FIREBASE_PRIVATE_KEY;
+  if (!k) throw new Error("Missing FIREBASE_PRIVATE_KEY");
+  // Support keys stored with escaped newlines in env vars
+  return k.replace(/\\n/g, "\n");
+}
+
+function getAdminAuth() {
+  if (!admin.apps.length) {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+    if (!projectId) throw new Error("Missing FIREBASE_PROJECT_ID");
+    if (!clientEmail) throw new Error("Missing FIREBASE_CLIENT_EMAIL");
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey: getPrivateKey(),
+      }),
+    });
+  }
+  return admin.auth();
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({} as any));
+    const idToken = body?.idToken;
+
+    if (!idToken || typeof idToken !== "string") {
+      return NextResponse.json({ ok: false, error: "Missing idToken" }, { status: 400 });
+    }
+
+    const auth = getAdminAuth();
+
+    // Create server session cookie from the Firebase ID token
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn: EXPIRES_IN_MS });
+
+    // Next.js 16: cookies() is async
+    const jar = await cookies();
+
+    jar.set(COOKIE_NAME, sessionCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.floor(EXPIRES_IN_MS / 1000), // seconds
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json(
+      { ok: false, error: err?.message || "Login failed" },
+      { status: 500 }
+    );
+  }
 }
