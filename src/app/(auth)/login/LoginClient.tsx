@@ -1,22 +1,17 @@
 /* ============================================================
    FILE: src/app/(auth)/login/LoginClient.tsx
    PURPOSE: Login UI (Client Component)
-            - Safe place to use useSearchParams()
+            - NO useSearchParams()
+            - Accepts nextUrl as a prop from the server page
    ============================================================ */
 
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function LoginClient() {
+export default function LoginClient({ nextUrl }: { nextUrl: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const nextUrl = useMemo(() => {
-    const n = searchParams.get("next");
-    return n && n.startsWith("/") ? n : "/";
-  }, [searchParams]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,11 +24,6 @@ export default function LoginClient() {
     setError(null);
 
     try {
-      // If your app uses a different flow, keep the Suspense structure
-      // and replace ONLY this login call.
-      //
-      // This example assumes you already have a /session/login route
-      // that sets the session cookie.
       const res = await fetch("/session/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,7 +35,7 @@ export default function LoginClient() {
         throw new Error(msg || "Login failed.");
       }
 
-      router.replace(nextUrl);
+      router.replace(nextUrl || "/");
     } catch (err: any) {
       setError(err?.message || "Login failed.");
     } finally {
