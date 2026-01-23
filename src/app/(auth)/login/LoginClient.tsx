@@ -1,8 +1,11 @@
 /* ============================================================
    FILE: src/app/(auth)/login/LoginClient.tsx
-   PURPOSE: Login UI (Client Component)
-            - NO useSearchParams()
-            - Accepts nextUrl as a prop from the server page
+   PURPOSE:
+   Client login form:
+   - Firebase signInWithEmailAndPassword
+   - getIdToken()
+   - POST /session/login with { idToken }
+   - Navigate to nextUrl
    ============================================================ */
 
 "use client";
@@ -10,99 +13,103 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getFirebaseApp } from "@/lib/firebaseClient";
+
 export default function LoginClient({ nextUrl }: { nextUrl: string }) {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+
     setBusy(true);
     setError(null);
 
     try {
-      const res = await fetch("/session/login", {
+      const app = getFirebaseApp();
+      const auth = getAuth(app);
+
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const idToken = await cred.user.getIdToken(true);
+
+      // IMPORTANT: use your existing endpoint (your logs show /session/login)
+      const resp = await fetch("/session/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ idToken }),
       });
 
-      if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        throw new Error(msg || "Login failed.");
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok || !data?.ok) {
+        const msg =
+          typeof data?.error === "string"
+            ? data.error
+            : `Login session failed (${resp.status})`;
+        throw new Error(msg);
       }
 
-      router.replace(nextUrl || "/");
+      router.replace(nextUrl || "/thinking");
+      router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Login failed.");
-    } finally {
+      setError(typeof err?.message === "string" ? err.message : "Login failed");
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "48px auto", padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>Log in</h1>
-      <p style={{ opacity: 0.8, marginBottom: 24 }}>
-        Enter your email and password.
-      </p>
+    <main className="min-h-screen w-full flex items-center justify-center px-6 py-10">
+      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-black/20 backdrop-blur-xl shadow-2xl p-8">
+        <h1 className="text-3xl font-semibold tracking-tight">Log in</h1>
+        <p className="mt-2 text-white/70">Enter your email and password.</p>
 
-      {error ? (
-        <div
-          style={{
-            background: "rgba(255,0,0,0.08)",
-            border: "1px solid rgba(255,0,0,0.25)",
-            padding: 12,
-            borderRadius: 10,
-            marginBottom: 16,
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
+        {error ? (
+          <div className="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {error}
+          </div>
+        ) : null}
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Email</span>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            type="email"
-            required
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ccc" }}
-          />
-        </label>
+        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+          <div>
+            <label className="block text-sm text-white/80">Email</label>
+            <input
+              className="mt-2 w-full rounded-xl bg-white/90 text-black px-4 py-3 outline-none"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              disabled={busy}
+            />
+          </div>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Password</span>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            type="password"
-            required
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ccc" }}
-          />
-        </label>
+          <div>
+            <label className="block text-sm text-white/80">Password</label>
+            <input
+              className="mt-2 w-full rounded-xl bg-white/90 text-black px-4 py-3 outline-none"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              disabled={busy}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 12,
-            border: "none",
-            cursor: busy ? "not-allowed" : "pointer",
-            opacity: busy ? 0.7 : 1,
-          }}
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </div>
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-2xl bg-white text-black py-3 font-semibold disabled:opacity-60"
+          >
+            {busy ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </div>
+    </main>
   );
 }
