@@ -1,12 +1,16 @@
 /* ============================================================
    FILE: src/app/(auth)/signup/page.tsx
    PURPOSE: Signup page content (NO header here)
+            Creates Firebase Auth user (client SDK)
    ============================================================ */
 
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
+
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebaseClient";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -19,102 +23,84 @@ export default function SignupPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
+
     setError(null);
     setLoading(true);
 
     try {
-      // TODO: wire real signup here
-      // For now, just simulate account creation:
-      window.location.href = "/thinking";
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+      // Success: keep UX simple for now.
+      // Your auth middleware/session work will control where users go next.
+      setLoading(false);
+      window.location.href = "/login";
     } catch (err: any) {
-      setError(err?.message || "Something went wrong.");
+      console.error("SIGNUP FAILED:", err);
+      setError(typeof err?.message === "string" ? err.message : "Signup failed");
       setLoading(false);
     }
   }
 
   return (
-    <div className="auth-grid">
-      <section className="auth-left">
-        <div className="auth-kicker">NEW ACCOUNT</div>
-        <h1 className="auth-h1">Start your private thinking trail</h1>
-        <p className="auth-sub">
-          One account. Your private workspace. A calm place to get clear and follow through.
-        </p>
-      </section>
+    <div>
+      <h2 className="text-3xl font-bold text-white">Create your account</h2>
 
-      <section className="auth-right">
-        <div className="auth-card">
-          <div className="auth-card-top">
-            <div className="auth-card-title">Create account</div>
-          </div>
-
-          <div className="auth-card-body">
-            <form className="auth-form" onSubmit={onSubmit}>
-              {error ? <div className="error">{error}</div> : null}
-
-              <div className="field">
-                <div className="label">Email</div>
-                <input
-                  className="input"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
-                />
-              </div>
-
-              <div className="field">
-                <div className="label">Password</div>
-
-                <div className="row">
-                  <input
-                    className="input"
-                    type={showPw ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => setShowPw((v) => !v)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                  >
-                    {showPw ? "Hide" : "Show"}
-                  </button>
-                </div>
-
-                <div className="hint">Minimum 6 characters</div>
-              </div>
-
-              <button className="btn" type="submit" disabled={!canSubmit}>
-                {loading ? "Creating..." : "Create account"}
-              </button>
-
-              <div className="row row-space">
-                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                  Already have an account?{" "}
-                  <Link className="small-link" href="/login">
-                    Sign in
-                  </Link>
-                </div>
-
-                <Link className="small-link" href="/">
-                  Back home
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          <div className="auth-footer">
-            By continuing, you’re creating a private workspace designed to help you clarify what matters
-            and commit with confidence.
-          </div>
+      <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+        <div>
+          <label className="block text-sm text-white/80">Email</label>
+          <input
+            className="mt-2 w-full rounded-xl bg-white text-black px-4 py-3 outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            inputMode="email"
+            disabled={loading}
+          />
         </div>
-      </section>
+
+        <div>
+          <label className="block text-sm text-white/80">Password</label>
+          <input
+            className="mt-2 w-full rounded-xl bg-white text-black px-4 py-3 outline-none"
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            disabled={loading}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            className="mt-2 text-sm text-white/70 underline"
+            disabled={loading}
+          >
+            {showPw ? "Hide password" : "Show password"}
+          </button>
+        </div>
+
+        {error ? (
+          <div className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-200">
+            {error}
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full rounded-xl bg-[#FF7900] py-3 font-bold text-white disabled:opacity-50"
+        >
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+
+        <div className="text-sm text-white/70">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-white underline">
+            Log in
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }
