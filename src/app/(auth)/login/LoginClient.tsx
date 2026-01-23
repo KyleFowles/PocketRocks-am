@@ -11,10 +11,16 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirebaseApp } from "@/lib/firebaseClient";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebaseClient";
+
+function safeMsg(e: any, fallback: string) {
+  const m = typeof e?.message === "string" ? e.message : "";
+  return m.trim() ? m : fallback;
+}
 
 export default function LoginClient({ nextUrl }: { nextUrl: string }) {
   const router = useRouter();
@@ -33,20 +39,19 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
     setError(null);
 
     try {
-      const app = getFirebaseApp();
-      const auth = getAuth(app);
-
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await cred.user.getIdToken(true);
 
-      // IMPORTANT: use your existing endpoint (your logs show /session/login)
       const resp = await fetch("/session/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
 
-      const data = await resp.json().catch(() => null);
+      const contentType = resp.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await resp.json().catch(() => null)
+        : null;
 
       if (!resp.ok || !data?.ok) {
         const msg =
@@ -56,10 +61,12 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
         throw new Error(msg);
       }
 
-      router.replace(nextUrl || "/thinking");
+      router.replace(nextUrl && nextUrl.startsWith("/") ? nextUrl : "/thinking");
       router.refresh();
     } catch (err: any) {
-      setError(typeof err?.message === "string" ? err.message : "Login failed");
+      console.error("LOGIN FAILED:", err);
+      setError(safeMsg(err, "Login failed"));
+    } finally {
       setBusy(false);
     }
   }
@@ -67,7 +74,7 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
   return (
     <main className="min-h-screen w-full flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-black/20 backdrop-blur-xl shadow-2xl p-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Log in</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Log in</h1>
         <p className="mt-2 text-white/70">Enter your email and password.</p>
 
         {error ? (
@@ -108,6 +115,13 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
           >
             {busy ? "Signing in…" : "Sign in"}
           </button>
+
+          <div className="text-sm text-white/70">
+            Need an account?{" "}
+            <Link href="/signup" className="font-semibold text-white underline">
+              Create one
+            </Link>
+          </div>
         </form>
       </div>
     </main>
