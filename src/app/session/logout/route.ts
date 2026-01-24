@@ -1,25 +1,24 @@
 /* ============================================================
    FILE: src/app/session/logout/route.ts
-   PURPOSE:
-   Clear the session cookie
+   PURPOSE: Clear session cookie
+   ROUTE: POST /session/logout
    ============================================================ */
 
 import { NextResponse } from "next/server";
-
-export const runtime = "nodejs";
 
 const COOKIE_NAME = "pr_session";
 
 export async function POST() {
   const res = NextResponse.json({ ok: true });
 
+  // Clear cookie
   res.cookies.set({
     name: COOKIE_NAME,
     value: "",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/", // must match login cookie path
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
     maxAge: 0,
   });
 

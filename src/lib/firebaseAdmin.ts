@@ -1,64 +1,42 @@
 /* ============================================================
    FILE: src/lib/firebaseAdmin.ts
-   PURPOSE:
-   Firebase Admin singleton for server-side auth/session cookies.
+   PURPOSE: Firebase Admin initialization (server-only)
    NOTES:
-   - Uses service account env vars if present (recommended)
-   - Falls back to application default credentials if available
-   - Provides getAdminAuth() for route handlers
+   - Used to verify Firebase ID tokens and mint session cookies
+   - Requires env vars:
+       FIREBASE_PROJECT_ID
+       FIREBASE_CLIENT_EMAIL
+       FIREBASE_PRIVATE_KEY
    ============================================================ */
 
 import "server-only";
 
-import { getApps, initializeApp, cert, applicationDefault } from "firebase-admin/app";
+import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
-function requireEnv(name: string) {
+function requireEnv(name: string): string {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing env var: ${name}`);
+  if (!v || v.trim().length === 0) {
+    throw new Error(`Missing required env var: ${name}`);
+  }
   return v;
 }
 
-/**
- * Supports either:
- * 1) FIREBASE_SERVICE_ACCOUNT (JSON string)  <-- easiest & most reliable
- * OR
- * 2) FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY
- * OR
- * 3) Google ADC (applicationDefault) if available
- */
-function initAdmin() {
-  if (getApps().length) return getApps()[0];
+function initAdmin(): App {
+  if (getApps().length) return getApps()[0]!;
 
-  // Option 1: single JSON env var
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (json) {
-    const parsed = JSON.parse(json);
-    return initializeApp({
-      credential: cert(parsed),
-    });
-  }
+  const projectId = requireEnv("FIREBASE_PROJECT_ID");
+  const clientEmail = requireEnv("FIREBASE_CLIENT_EMAIL");
+  const privateKey = requireEnv("FIREBASE_PRIVATE_KEY").replace(/\\n/g, "\n");
 
-  // Option 2: split env vars
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-
-  if (projectId && clientEmail && privateKeyRaw) {
-    const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
-    return initializeApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
-    });
-  }
-
-  // Option 3: ADC fallback (works on some local setups / GCP)
-  // If this fails, it will throw when used, which is okay.
   return initializeApp({
-    credential: applicationDefault(),
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
   });
 }
 
-export function getAdminAuth() {
-  initAdmin();
-  return getAuth();
-}
+export const adminApp = initAdmin();
+export const adminAuth = getAuth(adminApp);

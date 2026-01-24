@@ -3,7 +3,7 @@
    PURPOSE: Firebase client initialization (Auth, Firestore)
    NOTES:
    - Exports BOTH singleton objects (app/auth/db) AND helper getters
-   - Fixes build errors where other modules import { auth } / { db }
+   - Adds a safe runtime debug log to confirm the Firebase project id
    ============================================================ */
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
@@ -19,8 +19,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+function assertConfig() {
+  const missing: string[] = [];
+  for (const [k, v] of Object.entries(firebaseConfig)) {
+    if (!v || String(v).trim().length === 0) missing.push(k);
+  }
+  if (missing.length) {
+    // Throwing here is OK because it's a real misconfig, not a normal user flow error.
+    throw new Error(
+      `Firebase config is missing: ${missing.join(
+        ", "
+      )}. Check your .env.local NEXT_PUBLIC_FIREBASE_* values.`
+    );
+  }
+}
+
 function initApp(): FirebaseApp {
-  // Only initialize once (prevents Next.js dev hot-reload duplicates)
+  assertConfig();
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
@@ -28,6 +43,15 @@ function initApp(): FirebaseApp {
 export const app = initApp();
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
+
+// ✅ Tiny debug (helps catch "wrong Firebase project" instantly)
+if (typeof window !== "undefined") {
+  // This should match the Firebase Console project you think you're using.
+  // Example: "pocketrocks-prod" vs "pocketrocks-dev"
+  // Remove this once confirmed.
+  // eslint-disable-next-line no-console
+  console.log("PocketRocks Firebase project:", app.options.projectId);
+}
 
 // ✅ Backward-compatible helper functions (keep your existing API)
 export function getFirebaseApp() {

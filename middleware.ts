@@ -1,8 +1,12 @@
 /* ============================================================
-   FILE: src/middleware.ts
+   FILE: middleware.ts
    PURPOSE:
    Protect authenticated routes (including /step-1 and /thinking)
    Redirect to /login?next=... if no session cookie is present
+
+   IMPORTANT:
+   - Next.js only recognizes middleware at the REPO ROOT:
+     /middleware.ts (NOT src/middleware.ts)
    ============================================================ */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -30,6 +34,7 @@ function isProtectedPath(pathname: string) {
   // Protect the app thinking/step flow
   if (pathname === "/thinking" || pathname.startsWith("/thinking/")) return true;
   if (pathname === "/step-1" || pathname.startsWith("/step-")) return true;
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return true;
 
   return false;
 }

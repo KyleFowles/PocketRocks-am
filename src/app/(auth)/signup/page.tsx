@@ -1,25 +1,49 @@
 /* ============================================================
    FILE: src/app/(auth)/signup/page.tsx
-   PURPOSE: Signup page content (NO header here)
-            Creates Firebase Auth user (client SDK)
+   PURPOSE:
+   Signup page content (NO header here)
+   - Creates Firebase Auth user (client SDK)
+   - Immediately mints pr_session cookie via POST /session/login
+   - Redirects to next (or /thinking)
    ============================================================ */
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebaseClient";
 
+function friendlySignupError(code?: string, fallback?: string) {
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "That email is already in use. Try logging in instead.";
+    case "auth/invalid-email":
+      return "That doesn’t look like a valid email address.";
+    case "auth/weak-password":
+      return "That password is too weak. Please use at least 6 characters.";
+    case "auth/network-request-failed":
+      return "Network error. Please try again.";
+    default:
+      return fallback || "Signup failed. Please try again.";
+  }
+}
+
 export default function SignupPage() {
+  const sp = useSearchParams();
+
+  const nextUrl = sp.get("next") || "/thinking";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = email.trim().length > 3 && password.length >= 6 && !loading;
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const canSubmit = normalizedEmail.length > 3 && password.length >= 6 && !loading;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,15 +53,35 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      // 1) Create user in Firebase Auth (client)
+      const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
 
-      // Success: keep UX simple for now.
-      // Your auth middleware/session work will control where users go next.
+      // 2) Get Firebase ID token
+      const idToken = await cred.user.getIdToken();
+
+      // 3) Exchange for HttpOnly session cookie
+      const resp = await fetch("/session/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => null);
+        throw new Error(data?.error || "Session cookie creation failed");
+      }
+
       setLoading(false);
-      window.location.href = "/login";
+
+      // 4) Go to app (middleware will allow because pr_session now exists)
+      window.location.href = nextUrl;
     } catch (err: any) {
       console.error("SIGNUP FAILED:", err);
-      setError(typeof err?.message === "string" ? err.message : "Signup failed");
+
+      const code = typeof err?.code === "string" ? err.code : undefined;
+      const msg = friendlySignupError(code, typeof err?.message === "string" ? err.message : undefined);
+
+      setError(msg);
       setLoading(false);
     }
   }
