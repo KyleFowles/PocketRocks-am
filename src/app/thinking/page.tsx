@@ -1,15 +1,10 @@
 /* ============================================================
    FILE: src/app/thinking/page.tsx
-   PURPOSE:
-   Route alias for legacy links that go to "/thinking".
-
-   NOTE:
-   "(thinking)" is a Route Group and does NOT create the /thinking path.
-   Your real thinking entry route is "/step-1".
+   PURPOSE: Authenticated entry to PocketRocks Thinking Surface
    ============================================================ */
 
-import { redirect } from "next/navigation";
+import ThinkingSurface from "@/components/thinking/ThinkingSurface";
 
-export default function ThinkingAliasPage() {
-  redirect("/step-1");
+export default function ThinkingPage() {
+  return <ThinkingSurface />;
 }

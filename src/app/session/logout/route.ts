@@ -1,6 +1,6 @@
 /* ============================================================
    FILE: src/app/session/logout/route.ts
-   PURPOSE: Clear session cookie
+   PURPOSE: Clear HttpOnly session cookie
    ROUTE: POST /session/logout
    ============================================================ */
 
@@ -11,7 +11,6 @@ const COOKIE_NAME = "pr_session";
 export async function POST() {
   const res = NextResponse.json({ ok: true });
 
-  // Clear cookie
   res.cookies.set({
     name: COOKIE_NAME,
     value: "",
