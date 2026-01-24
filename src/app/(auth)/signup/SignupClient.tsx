@@ -1,10 +1,10 @@
 /* ============================================================
-   FILE: src/app/(auth)/login/LoginClient.tsx
+   FILE: src/app/(auth)/signup/SignupClient.tsx
 
-   PocketRocks — Login Client Component
+   PocketRocks — Signup Client Component
 
    Purpose:
-   - Safe usage of useSearchParams() inside client component
+   - Safe usage of useSearchParams() inside a client component
    - Eliminates Next.js prerender build error
 
    ============================================================ */
@@ -13,7 +13,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-export default function LoginClient() {
+export default function SignupClient() {
   const searchParams = useSearchParams();
 
   // Optional next redirect param
@@ -28,11 +28,11 @@ export default function LoginClient() {
       }}
     >
       <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 12 }}>
-        Login
+        Sign Up
       </h1>
 
       <p style={{ opacity: 0.75, marginBottom: 24 }}>
-        Continue into PocketRocks.
+        Create your PocketRocks account.
       </p>
 
       <div
@@ -43,9 +43,7 @@ export default function LoginClient() {
           background: "rgba(20,34,51,0.35)",
         }}
       >
-        <p style={{ marginBottom: 12 }}>
-          Redirect after login:
-        </p>
+        <p style={{ marginBottom: 12 }}>Redirect after signup:</p>
 
         <code
           style={{
@@ -71,7 +69,7 @@ export default function LoginClient() {
             cursor: "pointer",
           }}
         >
-          Sign In (placeholder)
+          Create Account (placeholder)
         </button>
       </div>
     </main>

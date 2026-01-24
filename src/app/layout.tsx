@@ -1,6 +1,6 @@
 /* ============================================================
    FILE: src/app/layout.tsx
-   PURPOSE: Root layout (REQUIRED html/body wrapper)
+   PURPOSE: Root layout that loads global CSS for ALL routes
    ============================================================ */
 
 import "./globals.css";
@@ -11,11 +11,7 @@ export const metadata: Metadata = {
   description: "The default place people go to think.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>{children}</body>

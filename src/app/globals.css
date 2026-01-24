@@ -1,9 +1,6 @@
 /* ============================================================
    FILE: src/app/globals.css
-   PURPOSE: Global styling for PocketRocks (no Tailwind required)
-   NOTES:
-   - Orange buttons use crisp white text
-   - Clean header + auth layout styling
+   PURPOSE: PocketRocks global styling (works WITHOUT Tailwind)
    ============================================================ */
 
 /* ---------- Reset / base ---------- */
@@ -20,300 +17,236 @@ body {
 
 body {
   margin: 0;
-  color: rgba(255, 255, 255, 0.92);
-  background: radial-gradient(1200px 900px at 18% 12%, rgba(255, 122, 0, 0.22), transparent 55%),
-    radial-gradient(1100px 820px at 72% 65%, rgba(0, 160, 255, 0.14), transparent 60%),
-    radial-gradient(900px 700px at 84% 18%, rgba(240, 78, 35, 0.16), transparent 62%),
-    linear-gradient(180deg, #07090c 0%, #06070a 100%);
+  background: radial-gradient(1200px 700px at 15% 10%, rgba(255, 121, 0, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 85% 20%, rgba(240, 78, 35, 0.12), transparent 55%),
+    radial-gradient(1100px 700px at 50% 100%, rgba(20, 34, 51, 0.35), rgba(9, 14, 22, 1) 70%);
+  color: rgba(245, 247, 250, 0.92);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
     "Segoe UI Emoji";
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background: rgba(255, 121, 0, 0.35);
+}
+
+/* ---------- Links ---------- */
 a {
-  color: rgba(255, 122, 0, 0.95);
+  color: rgba(255, 121, 0, 0.95);
   text-decoration: none;
 }
 a:hover {
   text-decoration: underline;
 }
 
-::selection {
-  background: rgba(255, 122, 0, 0.22);
+/* ---------- Layout helpers ---------- */
+.pr-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 28px 14px 44px;
 }
 
-/* ---------- Page containers ---------- */
-.auth-wrap {
-  min-height: calc(100vh - 78px);
-  padding: 38px 28px 60px;
+.pr-shell {
+  width: 100%;
+  max-width: 980px;
 }
 
-/* ---------- Header ---------- */
-.app-header {
-  height: 78px;
+/* ---------- Header / brand ---------- */
+.pr-brandRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.12));
-  backdrop-filter: blur(14px);
+  gap: 14px;
+  margin: 6px 0 18px;
 }
 
-.brand {
+.pr-title {
+  font-size: 20px;
+  letter-spacing: 0.2px;
+  margin: 0;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pr-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: rgba(219, 228, 240, 0.82);
+}
+
+.pr-chip {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 760;
-  letter-spacing: -0.02em;
-  font-size: 18px;
-}
-
-.brand-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #ff7a00;
-  box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.14);
-}
-
-.brand-sub {
-  margin-top: 4px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.badge {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-}
-
-/* ---------- Auth grid ---------- */
-.auth-grid {
-  max-width: 1120px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1.25fr 0.9fr;
-  gap: 46px;
-  align-items: start;
-}
-
-@media (max-width: 980px) {
-  .auth-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-}
-
-.auth-left {
-  padding-top: 28px;
-}
-
-.auth-kicker {
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 10px;
-}
-
-.auth-h1 {
-  margin: 0;
-  font-size: 62px;
-  line-height: 1.02;
-  letter-spacing: -0.04em;
-  font-weight: 820;
-  color: rgba(255, 255, 255, 0.96);
-}
-
-@media (max-width: 980px) {
-  .auth-h1 {
-    font-size: 46px;
-  }
-}
-
-.auth-sub {
-  margin: 14px 0 0;
-  max-width: 560px;
-  font-size: 18px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.70);
-}
-
-/* ---------- Card ---------- */
-.auth-right {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 980px) {
-  .auth-right {
-    justify-content: stretch;
-  }
-}
-
-.auth-card {
-  width: 520px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-  backdrop-filter: blur(16px);
-}
-
-@media (max-width: 980px) {
-  .auth-card {
-    width: 100%;
-  }
-}
-
-.auth-card-top {
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.auth-card-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.auth-card-body {
-  padding: 18px 20px 10px;
-}
-
-.auth-footer {
-  padding: 14px 20px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.60);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-/* ---------- Form elements ---------- */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
-}
-
-.label {
-  font-size: 13px;
-  font-weight: 650;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.hint {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.52);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.row-space {
-  justify-content: space-between;
-}
-
-.input {
-  width: 100%;
-  height: 44px;
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
   border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(235, 245, 255, 0.92);
-  color: rgba(0, 0, 0, 0.84);
-  padding: 0 14px;
-  font-size: 14px;
-  outline: none;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  color: rgba(240, 244, 251, 0.88);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.input:focus {
-  border-color: rgba(255, 122, 0, 0.55);
-  box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.18);
+/* ---------- Card / surface ---------- */
+.pr-card {
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
 }
 
-.error {
-  border: 1px solid rgba(255, 70, 70, 0.40);
-  background: rgba(255, 70, 70, 0.10);
-  color: rgba(255, 220, 220, 0.95);
-  padding: 10px 12px;
-  border-radius: 12px;
+.pr-cardInner {
+  padding: 18px 18px 16px;
+}
+
+.pr-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* ---------- Thinking turns ---------- */
+.pr-turn {
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  background: rgba(10, 16, 26, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+}
+
+.pr-turn + .pr-turn {
+  margin-top: 12px;
+}
+
+.pr-turnDone {
+  opacity: 0.82;
+  filter: saturate(0.95);
+}
+
+.pr-system {
   font-size: 13px;
-  line-height: 1.35;
+  color: rgba(227, 235, 247, 0.86);
+  margin: 0 0 10px;
+}
+
+.pr-prompt {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0 0 10px;
+}
+
+.pr-userAnswer {
+  margin: 10px 0 0;
+  color: rgba(255, 121, 0, 0.95);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+/* ---------- Inputs ---------- */
+.pr-inputRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pr-input {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 10, 16, 0.55);
+  color: rgba(245, 247, 250, 0.92);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.pr-input::placeholder {
+  color: rgba(210, 220, 235, 0.55);
+}
+
+.pr-input:focus {
+  border-color: rgba(255, 121, 0, 0.45);
+  box-shadow: 0 0 0 4px rgba(255, 121, 0, 0.14);
 }
 
 /* ---------- Buttons ---------- */
-.btn {
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.35);
-  background: linear-gradient(180deg, #ff7a00, #f04e23);
-  color: #ffffff; /* ✅ crisp white font on orange buttons */
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.01em;
+.pr-btn {
+  border: 0;
   cursor: pointer;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.40);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+  user-select: none;
 }
 
-.btn:hover {
-  filter: brightness(1.03);
-}
-
-.btn:active {
+.pr-btn:active {
   transform: translateY(1px);
 }
 
-.btn:disabled {
+.pr-btnPrimary {
+  background: linear-gradient(180deg, rgba(255, 121, 0, 1), rgba(240, 78, 35, 1));
+  color: #ffffff; /* crisp white font on orange buttons */
+}
+
+.pr-btnPrimary:hover {
+  filter: brightness(1.02);
+}
+
+.pr-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
-.btn.btn-ghost {
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-  color: rgba(255, 255, 255, 0.90);
-  font-weight: 750;
-  box-shadow: none;
+/* ---------- Footer note ---------- */
+.pr-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(220, 230, 244, 0.72);
 }
 
-.btn.btn-ghost:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-}
+/* ---------- Mobile ---------- */
+@media (max-width: 560px) {
+  .pr-cardInner {
+    padding: 14px 12px 12px;
+  }
 
-/* ---------- Small links ---------- */
-.small-link {
-  color: rgba(255, 122, 0, 0.95);
-  font-weight: 700;
-}
-.small-link:hover {
-  text-decoration: underline;
-}
+  .pr-inputRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-/* ---------- Safety: prevent accidental duplicate "raw text" spacing ---------- */
-.app-header p,
-.app-header h1,
-.app-header h2,
-.app-header h3 {
-  margin: 0;
+  .pr-btn {
+    width: 100%;
+  }
+
+  .pr-brandRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
