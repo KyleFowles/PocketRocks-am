@@ -1,25 +1,21 @@
 /* ============================================================
    FILE: src/app/(auth)/login/LoginClient.tsx
-   PURPOSE:
-   Client login form:
-   - Firebase signInWithEmailAndPassword
-   - getIdToken()
-   - POST /session/login with { idToken }
-   - Navigate to nextUrl
+   PURPOSE: Tailwind login UI using Firebase Auth, then mint pr_session cookie.
    ============================================================ */
 
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebaseClient";
+import { firebaseAuth } from "@/lib/firebaseClient";
+
+import AuthShell from "@/components/ui/AuthShell";
+import { ErrorBox, Field, PrimaryButton, TextInput } from "@/components/ui/FormBits";
 
 function safeMsg(e: any, fallback: string) {
   const m = typeof e?.message === "string" ? e.message : "";
-  return m.trim() ? m : fallback;
+  return m || fallback;
 }
 
 export default function LoginClient({ nextUrl }: { nextUrl: string }) {
@@ -27,103 +23,80 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const canSubmit = useMemo(() => {
+    return email.trim().length > 3 && password.length > 0 && !busy;
+  }, [email, password, busy]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (busy) return;
+    if (!canSubmit) return;
 
     setBusy(true);
-    setError(null);
+    setError("");
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      const idToken = await cred.user.getIdToken(true);
+      // 1) Sign in via Firebase client SDK
+      const cred = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+      const idToken = await cred.user.getIdToken();
 
-      const resp = await fetch("/session/login", {
+      // 2) Mint session cookie via server route
+      const r = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
 
-      const contentType = resp.headers.get("content-type") || "";
-      const data = contentType.includes("application/json")
-        ? await resp.json().catch(() => null)
-        : null;
-
-      if (!resp.ok || !data?.ok) {
-        const msg =
-          typeof data?.error === "string"
-            ? data.error
-            : `Login session failed (${resp.status})`;
-        throw new Error(msg);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data?.ok) {
+        throw new Error(data?.error || "Session cookie failed");
       }
 
-      router.replace(nextUrl && nextUrl.startsWith("/") ? nextUrl : "/thinking");
-      router.refresh();
-    } catch (err: any) {
-      console.error("LOGIN FAILED:", err);
-      setError(safeMsg(err, "Login failed"));
+      // 3) Redirect only after success
+      router.replace(nextUrl || "/thinking");
+    } catch (e: any) {
+      setError(safeMsg(e, "Login failed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <main className="min-h-screen w-full flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-black/20 backdrop-blur-xl shadow-2xl p-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Log in</h1>
-        <p className="mt-2 text-white/70">Enter your email and password.</p>
-
-        {error ? (
-          <div className="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-            {error}
-          </div>
-        ) : null}
-
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <div>
-            <label className="block text-sm text-white/80">Email</label>
-            <input
-              className="mt-2 w-full rounded-xl bg-white/90 text-black px-4 py-3 outline-none"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              inputMode="email"
-              disabled={busy}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-white/80">Password</label>
-            <input
-              className="mt-2 w-full rounded-xl bg-white/90 text-black px-4 py-3 outline-none"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              autoComplete="current-password"
-              disabled={busy}
-            />
-          </div>
-
-          <button
-            type="submit"
+    <AuthShell
+      title="Sign in"
+      subtitle="Log in to continue. If you don’t have an account yet, create one first."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <Field label="Email">
+          <TextInput
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            autoComplete="email"
+            placeholder="you@company.com"
             disabled={busy}
-            className="w-full rounded-2xl bg-white text-black py-3 font-semibold disabled:opacity-60"
-          >
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
+          />
+        </Field>
 
-          <div className="text-sm text-white/70">
-            Need an account?{" "}
-            <Link href="/signup" className="font-semibold text-white underline">
-              Create one
-            </Link>
-          </div>
-        </form>
-      </div>
-    </main>
+        <Field label="Password">
+          <TextInput
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            disabled={busy}
+          />
+        </Field>
+
+        {error ? <ErrorBox message={error} /> : null}
+
+        <PrimaryButton type="submit" disabled={!canSubmit}>
+          {busy ? "Signing in…" : "Sign in"}
+        </PrimaryButton>
+      </form>
+    </AuthShell>
   );
 }

@@ -1,12 +1,11 @@
 /* ============================================================
    FILE: src/app/layout.tsx
-   PURPOSE: Root layout (REQUIRED html/body wrapper)
+   PURPOSE: Root layout — no duplicate hero text
    ============================================================ */
 
 import "./globals.css";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "PocketRocks",
   description: "The default place people go to think.",
 };

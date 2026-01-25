@@ -1,6 +1,8 @@
 /* ============================================================
    FILE: src/app/(auth)/login/layout.tsx
-   PURPOSE: Login layout — content only (no brand/header)
+   PURPOSE: Login layout — passthrough
+   NOTES:
+   - (auth)/layout.tsx provides the shared header and page shell
    ============================================================ */
 
 import type { ReactNode } from "react";
