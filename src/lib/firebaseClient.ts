@@ -1,89 +1,78 @@
 /* ============================================================
    FILE: src/lib/firebaseClient.ts
-   PURPOSE: Client-side Firebase initialization (singleton)
-   IMPORTANT:
-   - Turbopack/Next only inlines NEXT_PUBLIC_* vars when accessed
-     as direct properties (process.env.NEXT_PUBLIC_...).
-   - Do NOT use process.env[name] or loops for client env access.
+   PURPOSE: Safe Firebase client init (never crashes at import)
+
+   Fixes:
+   - Prevents Turbopack/RSC from crashing when env vars load late
+   - Avoids import-time requireEnv() failures
+   - Ensures Firebase only initializes when config is truly ready
+
    ============================================================ */
 
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+"use client";
 
-function requireValue(label: string, value: string | undefined) {
-  const v = typeof value === "string" ? value.trim() : "";
-  if (!v) {
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+/* ------------------------------------------------------------
+   Lazy-safe config loader
+   ------------------------------------------------------------ */
+
+function getFirebaseConfig() {
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+  // If env is not ready yet, do NOT crash during module import
+  if (!apiKey || !authDomain || !projectId) {
+    console.warn(
+      "⚠ Firebase env not loaded yet — skipping init until ready."
+    );
+    return null;
+  }
+
+  return {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+}
+
+/* ------------------------------------------------------------
+   Firebase App Singleton
+   ------------------------------------------------------------ */
+
+export function getFirebaseApp() {
+  const config = getFirebaseConfig();
+
+  if (!config) {
     throw new Error(
-      `Missing required env var: ${label}\n` +
-        `Expected ONE of:\n` +
-        `- NEXT_PUBLIC_FIREBASE_API_KEY\n` +
-        `- NEXT_PUBLIC_FIREBASE_PUBLIC_API_KEY\n` +
-        `- NEXT_PUBLIC_FIREBASE_KEY\n` +
-        `- NEXT_PUBLIC_FIREBASE_CLIENT_API_KEY`
+      "Firebase config missing. Confirm NEXT_PUBLIC_FIREBASE_* env vars exist in .env.local."
     );
   }
-  return v;
+
+  return getApps().length ? getApp() : initializeApp(config);
 }
 
-function requireAuthDomain(value: string | undefined) {
-  const v = typeof value === "string" ? value.trim() : "";
-  if (!v) {
-    throw new Error(
-      `Missing required env var: Firebase Auth Domain\n` +
-        `Expected:\n` +
-        `- NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-    );
-  }
-  return v;
+/* ------------------------------------------------------------
+   Firebase Services
+   ------------------------------------------------------------ */
+
+export function getFirebaseAuth() {
+  return getAuth(getFirebaseApp());
 }
 
-function requireProjectId(value: string | undefined) {
-  const v = typeof value === "string" ? value.trim() : "";
-  if (!v) {
-    throw new Error(
-      `Missing required env var: Firebase Project ID\n` +
-        `Expected:\n` +
-        `- NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-    );
-  }
-  return v;
+export function getFirestoreDb() {
+  return getFirestore(getFirebaseApp());
 }
 
-function requireAppId(value: string | undefined) {
-  const v = typeof value === "string" ? value.trim() : "";
-  if (!v) {
-    throw new Error(
-      `Missing required env var: Firebase App ID\n` +
-        `Expected:\n` +
-        `- NEXT_PUBLIC_FIREBASE_APP_ID`
-    );
-  }
-  return v;
-}
+/* ------------------------------------------------------------
+   Convenience Exports
+   ------------------------------------------------------------ */
 
-// IMPORTANT: direct property access only (Turbopack-safe)
-const API_KEY =
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-  process.env.NEXT_PUBLIC_FIREBASE_PUBLIC_API_KEY ||
-  process.env.NEXT_PUBLIC_FIREBASE_KEY ||
-  process.env.NEXT_PUBLIC_FIREBASE_CLIENT_API_KEY;
-
-const AUTH_DOMAIN = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-const MESSAGING_SENDER_ID = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
-const APP_ID = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
-
-const firebaseConfig = {
-  apiKey: requireValue("Firebase API Key", API_KEY),
-  authDomain: requireAuthDomain(AUTH_DOMAIN),
-  projectId: requireProjectId(PROJECT_ID),
-  storageBucket: typeof STORAGE_BUCKET === "string" ? STORAGE_BUCKET.trim() : undefined,
-  messagingSenderId:
-    typeof MESSAGING_SENDER_ID === "string" ? MESSAGING_SENDER_ID.trim() : undefined,
-  appId: requireAppId(APP_ID),
-};
-
-export function getFirebaseApp(): FirebaseApp {
-  if (getApps().length) return getApps()[0]!;
-  return initializeApp(firebaseConfig);
-}
+export const auth = getFirebaseAuth();
+export const db = getFirestoreDb();

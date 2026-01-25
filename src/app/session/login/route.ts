@@ -7,7 +7,7 @@
    ============================================================ */
 
 import { NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebaseAdmin";
+import { adminAuth as firebaseAdminAuth } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -23,8 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Missing idToken" }, { status: 400 });
     }
 
-    const adminAuth = getAdminAuth();
-
+    const adminAuth = firebaseAdminAuth();
     // Validate token
     await adminAuth.verifyIdToken(idToken);
 

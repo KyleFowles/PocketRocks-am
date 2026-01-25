@@ -1,31 +1,17 @@
 /* ============================================================
    FILE: src/lib/auth.ts
-   PURPOSE: Browser auth helpers
+   PURPOSE: Auth helpers used by /thinking
    ============================================================ */
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  User,
-  onAuthStateChanged,
-} from "firebase/auth";
+"use client";
+
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "./firebaseClient";
 
 export function listenToAuth(cb: (user: User | null) => void) {
   return onAuthStateChanged(auth, cb);
 }
 
-export async function signup(email: string, password: string) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  return cred.user;
-}
-
-export async function login(email: string, password: string) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
-  return cred.user;
-}
-
-export async function logout() {
+export async function logout(): Promise<void> {
   await signOut(auth);
 }

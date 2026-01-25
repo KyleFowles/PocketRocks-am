@@ -1,13 +1,16 @@
 /* ============================================================
    FILE: src/app/layout.tsx
-   PURPOSE: Root layout (required html/body wrapper)
+   PURPOSE: Root layout (Next.js App Router)
+   - REQUIRED: must include <html> and <body>
+   - Loads globals.css once for the entire app
    ============================================================ */
 
+import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "PocketRocks",
-  description: "The default place people go to think.",
+  description: "A calm place to think clearly.",
 };
 
 export default function RootLayout({
