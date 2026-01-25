@@ -1,6 +1,6 @@
 /* ============================================================
    FILE: src/app/layout.tsx
-   PURPOSE: Root layout — no duplicate hero text
+   PURPOSE: Root layout (required html/body wrapper)
    ============================================================ */
 
 import "./globals.css";

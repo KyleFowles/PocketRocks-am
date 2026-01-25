@@ -1,8 +1,22 @@
+/* ============================================================
+   FILE: src/app/(auth)/signup/SignupClient.tsx
+   PURPOSE: Signup UI (dark gradient + glass card)
+   ============================================================ */
+
 "use client";
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import AuthShell from "@/components/ui/AuthShell";
+import {
+  ErrorBox,
+  InlineRow,
+  PasswordField,
+  PrimaryButton,
+  TextField,
+} from "@/components/ui/FormBits";
+
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { getFirebaseApp } from "@/lib/firebaseClient";
 
 export default function SignupClient() {
@@ -10,73 +24,83 @@ export default function SignupClient() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  async function handleSignup() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit() {
     setError(null);
-    setLoading(true);
+    setBusy(true);
 
     try {
       const app = getFirebaseApp();
       const auth = getAuth(app);
-
       await createUserWithEmailAndPassword(auth, email, password);
-
       router.push("/thinking");
-    } catch (err: any) {
-      setError(err.message || "Signup failed.");
+    } catch (e: any) {
+      setError(e?.message || "Could not create account.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
   return (
-    <main className="pr-auth-shell">
-      {/* Header */}
-      <header className="pr-auth-header">
-        <p className="pr-brand">PocketRocks</p>
-        <h1 className="pr-hero-title">The default place people go to think.</h1>
-        <p className="pr-hero-subtitle">Private by design · Calm by default</p>
-      </header>
+    <AuthShell
+      kicker="NEW ACCOUNT"
+      title={
+        <>
+          Start your private
+          <br />
+          thinking trail
+        </>
+      }
+      subtitle="One account. Your private workspace. A calm place to get clear and follow through."
+      cardTitle="Create account"
+    >
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onChange={setEmail}
+        placeholder="you@company.com"
+        autoComplete="email"
+      />
 
-      {/* Card */}
-      <section className="pr-auth-card">
-        <h2>Create your account</h2>
-        <p className="pr-auth-note">Email and password only. No noise.</p>
+      <PasswordField
+        label="Password"
+        value={password}
+        onChange={setPassword}
+        placeholder="Minimum 6 characters"
+        autoComplete="new-password"
+        hint="Minimum 6 characters"
+      />
 
-        <label>Email</label>
-        <input
-          type="email"
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <PrimaryButton disabled={busy} onClick={onSubmit}>
+        {busy ? "Creating…" : "Create account"}
+      </PrimaryButton>
 
-        <label>Password</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+      <InlineRow
+        left={
+          <span className="pr-muted">
+            Already have an account?{" "}
+            <a className="pr-link" href="/login">
+              Sign in
+            </a>
+          </span>
+        }
+        right={
+          <a className="pr-link" href="/">
+            Back home
+          </a>
+        }
+      />
 
-        <p className="pr-auth-hint">Use 6+ characters.</p>
+      <ErrorBox message={error} />
 
-        {error && <p className="pr-error">{error}</p>}
-
-        <button
-          className="pr-primary-btn"
-          disabled={loading}
-          onClick={handleSignup}
-        >
-          {loading ? "Creating..." : "Create account"}
-        </button>
-
-        <p className="pr-trust-line">
-          No spam. No feeds. Just your private thinking space.
-        </p>
-      </section>
-    </main>
+      <div className="pr-card-footer">
+        By continuing, you’re creating a private workspace designed to help you
+        clarify what matters and commit with confidence.
+      </div>
+    </AuthShell>
   );
 }

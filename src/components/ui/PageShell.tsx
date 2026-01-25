@@ -1,28 +1,32 @@
 /* ============================================================
    FILE: src/components/ui/PageShell.tsx
-   PURPOSE: Shared “beautiful” page shell used across all screens.
+   PURPOSE: Dark auth page backdrop + top bar (logo + pill)
    ============================================================ */
 
 import React from "react";
 
 export default function PageShell({
-  title,
-  subtitle,
   children,
+  pillText = "Private by design • Calm by default",
 }: {
-  title: string;
-  subtitle?: string;
   children: React.ReactNode;
+  pillText?: string;
 }) {
   return (
-    <main className="pr-shell">
-      <section className="pr-card">
-        <header className="pr-header">
-          <h1 className="pr-title">{title}</h1>
-          {subtitle ? <p className="pr-subtitle">{subtitle}</p> : null}
-        </header>
-        <div className="pr-body">{children}</div>
-      </section>
-    </main>
+    <div className="pr-auth-page">
+      <div className="pr-topbar">
+        <div className="pr-brandrow">
+          <div className="pr-dot" />
+          <div className="pr-brandtext">
+            <div className="pr-brandname">PocketRocks</div>
+            <div className="pr-brandtagline">The default place people go to think.</div>
+          </div>
+        </div>
+
+        <div className="pr-pill">{pillText}</div>
+      </div>
+
+      {children}
+    </div>
   );
 }

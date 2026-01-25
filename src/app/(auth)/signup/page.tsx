@@ -1,6 +1,6 @@
 /* ============================================================
    FILE: src/app/(auth)/signup/page.tsx
-   PURPOSE: Final polished PocketRocks Signup Screen
+   PURPOSE: Signup route (server component wrapper)
    ============================================================ */
 
 import SignupClient from "./SignupClient";

@@ -1,63 +1,46 @@
 /* ============================================================
    FILE: src/app/(auth)/login/LoginClient.tsx
-   PURPOSE: Tailwind login UI using Firebase Auth, then mint pr_session cookie.
+   PURPOSE: Login UI matching the signup screen
    ============================================================ */
 
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { firebaseAuth } from "@/lib/firebaseClient";
-
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "@/components/ui/AuthShell";
-import { ErrorBox, Field, PrimaryButton, TextInput } from "@/components/ui/FormBits";
+import {
+  ErrorBox,
+  InlineRow,
+  PasswordField,
+  PrimaryButton,
+  TextField,
+} from "@/components/ui/FormBits";
 
-function safeMsg(e: any, fallback: string) {
-  const m = typeof e?.message === "string" ? e.message : "";
-  return m || fallback;
-}
+import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
+import { getFirebaseApp } from "@/lib/firebaseClient";
 
-export default function LoginClient({ nextUrl }: { nextUrl: string }) {
+export default function LoginClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams?.get("next") || "/thinking";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 3 && password.length > 0 && !busy;
-  }, [email, password, busy]);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-
+  async function onSubmit() {
+    setError(null);
     setBusy(true);
-    setError("");
 
     try {
-      // 1) Sign in via Firebase client SDK
-      const cred = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
-      const idToken = await cred.user.getIdToken();
-
-      // 2) Mint session cookie via server route
-      const r = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || !data?.ok) {
-        throw new Error(data?.error || "Session cookie failed");
-      }
-
-      // 3) Redirect only after success
-      router.replace(nextUrl || "/thinking");
+      const app = getFirebaseApp();
+      const auth = getAuth(app);
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push(next);
     } catch (e: any) {
-      setError(safeMsg(e, "Login failed"));
+      setError(e?.message || "Could not sign in.");
     } finally {
       setBusy(false);
     }
@@ -65,38 +48,60 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
 
   return (
     <AuthShell
-      title="Sign in"
-      subtitle="Log in to continue. If you don’t have an account yet, create one first."
+      kicker="WELCOME BACK"
+      title={
+        <>
+          Return to your
+          <br />
+          thinking trail
+        </>
+      }
+      subtitle="Sign in to your private workspace. Keep your thinking clear, calm, and consistent."
+      cardTitle="Sign in"
     >
-      <form className="space-y-4" onSubmit={onSubmit}>
-        <Field label="Email">
-          <TextInput
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="email"
-            placeholder="you@company.com"
-            disabled={busy}
-          />
-        </Field>
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onChange={setEmail}
+        placeholder="you@company.com"
+        autoComplete="email"
+      />
 
-        <Field label="Password">
-          <TextInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            disabled={busy}
-          />
-        </Field>
+      <PasswordField
+        label="Password"
+        value={password}
+        onChange={setPassword}
+        placeholder="Your password"
+        autoComplete="current-password"
+        hint=" "
+      />
 
-        {error ? <ErrorBox message={error} /> : null}
+      <PrimaryButton disabled={busy} onClick={onSubmit}>
+        {busy ? "Signing in…" : "Sign in"}
+      </PrimaryButton>
 
-        <PrimaryButton type="submit" disabled={!canSubmit}>
-          {busy ? "Signing in…" : "Sign in"}
-        </PrimaryButton>
-      </form>
+      <InlineRow
+        left={
+          <span className="pr-muted">
+            New here?{" "}
+            <a className="pr-link" href="/signup">
+              Create account
+            </a>
+          </span>
+        }
+        right={
+          <a className="pr-link" href="/">
+            Back home
+          </a>
+        }
+      />
+
+      <ErrorBox message={error} />
+
+      <div className="pr-card-footer">
+        Private by design. Calm by default. Your thinking stays yours.
+      </div>
     </AuthShell>
   );
 }

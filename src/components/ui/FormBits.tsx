@@ -1,74 +1,111 @@
-/* ============================================================
-   FILE: src/components/ui/FormBits.tsx
-   PURPOSE: Tailwind form primitives (input, button, error box)
-   ============================================================ */
+"use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 
-export function Field({
+export function TextField({
   label,
-  children,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
 }: {
   label: string;
-  children: React.ReactNode;
+  type?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
 }) {
   return (
-    <label className="block">
-      <div className="text-sm text-white/80">{label}</div>
-      <div className="mt-2">{children}</div>
-    </label>
-  );
-}
-
-export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={[
-        "w-full rounded-xl bg-white text-black px-4 py-3 outline-none",
-        "ring-1 ring-black/10 focus:ring-2 focus:ring-[#FF7900]/60",
-        "disabled:opacity-60 disabled:cursor-not-allowed",
-        props.className || "",
-      ].join(" ")}
-    />
-  );
-}
-
-export function PrimaryButton(
-  props: React.ButtonHTMLAttributes<HTMLButtonElement>
-) {
-  return (
-    <button
-      {...props}
-      className={[
-        "w-full rounded-xl bg-[#FF7900] py-3 font-bold text-white",
-        "hover:brightness-110 active:brightness-95",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        props.className || "",
-      ].join(" ")}
-    />
-  );
-}
-
-export function LinkButton(
-  props: React.ButtonHTMLAttributes<HTMLButtonElement>
-) {
-  return (
-    <button
-      {...props}
-      className={[
-        "text-sm text-white/70 underline hover:text-white",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
-        props.className || "",
-      ].join(" ")}
-    />
-  );
-}
-
-export function ErrorBox({ message }: { message: string }) {
-  return (
-    <div className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-200 border border-red-500/30">
-      {message}
+    <div className="pr-field">
+      <div className="pr-label">{label}</div>
+      <input
+        className="pr-input"
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
+}
+
+export function PasswordField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoComplete?: string;
+  hint?: string;
+}) {
+  const [show, setShow] = useState(false);
+
+  const type = useMemo(() => (show ? "text" : "password"), [show]);
+
+  return (
+    <div className="pr-field">
+      <div className="pr-label">{label}</div>
+
+      <div className="pr-inputrow">
+        <input
+          className="pr-input"
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+        />
+
+        <button
+          type="button"
+          className="pr-show-inline"
+          onClick={() => setShow((s) => !s)}
+        >
+          {show ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {hint ? <div className="pr-hint">{hint}</div> : null}
+    </div>
+  );
+}
+
+export function PrimaryButton({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button className="pr-primary" disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+export function InlineRow({
+  left,
+  right,
+}: {
+  left: React.ReactNode;
+  right: React.ReactNode;
+}) {
+  return <div className="pr-row">{left}{right}</div>;
+}
+
+export function ErrorBox({ message }: { message?: string | null }) {
+  if (!message) return null;
+  return <div className="pr-error">{message}</div>;
 }
