@@ -1,17 +1,21 @@
 /* ============================================================
    FILE: src/components/thinking/ThinkingTurn.tsx
-   PURPOSE: One turn = one prompt + one user action + lock state
-            Speed layer:
-            - ThinkingTurn (base wrapper, backwards compatible)
-            - TurnInput (1-line input + Continue)
-            - TurnChoice (choice list)
+   PURPOSE:
+   - Canonical PocketRocks Turn Component
+   - Built-in Input + Choice helpers
+   - Prevents auto-advance bugs
+   - One action per turn, locked after submit
    ============================================================ */
 
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
-export function ThinkingTurn({
+/* ============================================================
+   BASE TURN WRAPPER
+   ============================================================ */
+
+export default function ThinkingTurn({
   systemLead,
   systemOutput,
   prompt,
@@ -26,15 +30,14 @@ export function ThinkingTurn({
 }) {
   return (
     <section
-      className={[
-        "rounded-xl border border-neutral-900 p-5 transition",
-        locked ? "opacity-75 pointer-events-none" : "opacity-100",
-      ].join(" ")}
+      className={`rounded-2xl border border-neutral-900 bg-neutral-950/40 p-6 transition ${
+        locked ? "opacity-70" : "opacity-100"
+      }`}
     >
-      <p className="text-sm text-neutral-300">{systemLead}</p>
+      <p className="text-sm font-semibold text-neutral-300">{systemLead}</p>
 
       {systemOutput ? (
-        <div className="mt-3 rounded-lg border border-neutral-900 bg-neutral-950/60 p-3 text-sm text-neutral-200">
+        <div className="mt-3 rounded-xl border border-neutral-900 bg-black/30 p-3 text-sm text-neutral-200">
           {systemOutput}
         </div>
       ) : null}
@@ -46,134 +49,72 @@ export function ThinkingTurn({
   );
 }
 
-function cleanOneLine(s: string) {
-  return (s || "").replace(/\s+/g, " ").trim();
-}
+/* ============================================================
+   TURN INPUT (one-line + Continue)
+   ============================================================ */
 
 export function TurnInput({
-  systemLead,
-  systemOutput,
-  prompt,
-  locked,
   value,
+  onSubmit,
+  locked,
   placeholder,
   ctaLabel = "Continue",
-  onSubmit,
 }: {
-  systemLead: string;
-  systemOutput?: string;
-  prompt: string;
-  locked: boolean;
   value: string;
-  placeholder?: string;
-  ctaLabel?: string;
-  onSubmit: (finalValue: string) => void;
-}) {
-  const [draft, setDraft] = useState(value || "");
-
-  // Keep draft in sync when parent sets value (e.g., restore)
-  React.useEffect(() => {
-    if (!locked) setDraft(value || "");
-  }, [value, locked]);
-
-  const canSubmit = useMemo(() => Boolean(cleanOneLine(draft)), [draft]);
-
-  return (
-    <ThinkingTurn systemLead={systemLead} systemOutput={systemOutput} prompt={prompt} locked={locked}>
-      <div style={{ display: "grid", gap: 10 }}>
-        <input
-          value={locked ? value : draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          disabled={locked}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const v = cleanOneLine(draft);
-              if (v) onSubmit(v);
-            }
-          }}
-          style={{
-            height: 46,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.12)",
-            background: "rgba(0,0,0,0.20)",
-            color: "rgba(255,255,255,0.92)",
-            padding: "0 14px",
-            outline: "none",
-          }}
-        />
-        {!locked ? (
-          <button
-            type="button"
-            onClick={() => {
-              const v = cleanOneLine(draft);
-              if (v) onSubmit(v);
-            }}
-            disabled={!canSubmit}
-            style={{
-              height: 46,
-              borderRadius: 14,
-              border: "1px solid rgba(255,121,0,0.35)",
-              background: "linear-gradient(180deg, rgba(255,121,0,0.92), rgba(240,78,35,0.78))",
-              color: "#ffffff",
-              fontWeight: 900,
-              cursor: !canSubmit ? "not-allowed" : "pointer",
-              opacity: !canSubmit ? 0.6 : 1,
-            }}
-          >
-            {ctaLabel}
-          </button>
-        ) : null}
-      </div>
-    </ThinkingTurn>
-  );
-}
-
-export function TurnChoice<T extends string>({
-  systemLead,
-  systemOutput,
-  prompt,
-  locked,
-  value,
-  choices,
-  onChoose,
-}: {
-  systemLead: string;
-  systemOutput?: string;
-  prompt: string;
+  onSubmit: (val: string) => void;
   locked: boolean;
-  value: T | null;
-  choices: Array<{ value: T; label: string }>;
-  onChoose: (v: T) => void;
+  placeholder: string;
+  ctaLabel?: string;
 }) {
+  const [local, setLocal] = useState(value);
+
   return (
-    <ThinkingTurn systemLead={systemLead} systemOutput={systemOutput} prompt={prompt} locked={locked}>
-      <div style={{ display: "grid", gap: 10 }}>
-        {choices.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            disabled={locked}
-            onClick={() => onChoose(c.value)}
-            style={{
-              textAlign: "left",
-              padding: "12px 12px",
-              borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: value === c.value ? "rgba(255,121,0,0.12)" : "rgba(255,255,255,0.06)",
-              color: "rgba(255,255,255,0.92)",
-              fontWeight: 800,
-              cursor: locked ? "not-allowed" : "pointer",
-            }}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-    </ThinkingTurn>
+    <div className="grid gap-3">
+      <input
+        value={local}
+        disabled={locked}
+        placeholder={placeholder}
+        onChange={(e) => setLocal(e.target.value)}
+        className="h-12 rounded-xl border border-neutral-800 bg-black/30 px-4 text-sm text-white outline-none focus:border-orange-500"
+      />
+
+      <button
+        type="button"
+        disabled={locked || local.trim().length < 2}
+        onClick={() => onSubmit(local.trim())}
+        className="h-12 rounded-xl bg-orange-500 font-semibold text-white disabled:opacity-40"
+      >
+        {ctaLabel}
+      </button>
+    </div>
   );
 }
 
-// Default export alias (for convenience)
-export default ThinkingTurn;
+/* ============================================================
+   TURN CHOICE (button list)
+   ============================================================ */
+
+export function TurnChoice({
+  options,
+  onPick,
+  locked,
+}: {
+  options: string[];
+  onPick: (val: string) => void;
+  locked: boolean;
+}) {
+  return (
+    <div className="grid gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          disabled={locked}
+          onClick={() => onPick(opt)}
+          className="w-full rounded-xl border border-neutral-800 bg-black/20 px-4 py-3 text-left text-sm text-white hover:border-orange-500 disabled:opacity-50"
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
