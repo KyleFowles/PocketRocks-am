@@ -16,7 +16,7 @@ import { listenToAuth, logout } from "@/lib/auth";
 export default function ThinkingClientShell({
   children,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();

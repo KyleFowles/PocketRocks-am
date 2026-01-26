@@ -1,23 +1,18 @@
 /* ============================================================
    FILE: src/app/(thinking)/thinking/layout.tsx
-   PURPOSE: Server-side guard for /thinking routes (NO middleware)
-            - Reads HttpOnly cookie via async cookies()
-            - Redirects to /login if missing
+   PURPOSE: Thinking area layout (UI ONLY — no auth logic)
    ============================================================ */
 
 import React from "react";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
-const COOKIE_NAME = "pr_session";
-
-export default async function ThinkingLayout({ children }: { children: React.ReactNode }) {
-  const jar = await cookies();
-  const hasSession = Boolean(jar.get(COOKIE_NAME)?.value);
-
-  if (!hasSession) {
-    redirect("/login?next=/thinking");
-  }
-
-  return <>{children}</>;
+export default function ThinkingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(255,121,0,0.14),transparent_55%),linear-gradient(to_bottom,#05070d,#07101c_55%,#04060b)]">
+      {children}
+    </div>
+  );
 }
