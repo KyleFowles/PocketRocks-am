@@ -1,8 +1,10 @@
 /* ============================================================
    FILE: src/app/(auth)/signup/SignupClient.tsx
-   PURPOSE: Signup UI using AuthShell hero + card pattern
-            - Correctly uses variant="signup"
-            - Creates Firebase user + session cookie
+   PURPOSE: Signup UI using premium AuthShell (aligned to Login)
+            - Reads ?next= (defaults to /thinking)
+            - Creates Firebase user
+            - Exchanges ID token for session cookie via /session/login
+            - Redirects to resolved next route
    ============================================================ */
 
 "use client";
@@ -26,17 +28,18 @@ async function createSessionCookie(idToken: string) {
     body: JSON.stringify({ idToken }),
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok || !data?.ok) {
     throw new Error(data?.error || "Session login failed.");
   }
 }
 
 export default function SignupClient() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const sp = useSearchParams();
 
-  const nextUrl = useMemo(() => normalizeNextUrl(searchParams.get("next")), [searchParams]);
+  const nextUrl = useMemo(() => normalizeNextUrl(sp.get("next")), [sp]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -47,6 +50,8 @@ export default function SignupClient() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+
     setError("");
 
     const em = email.trim();
@@ -73,38 +78,33 @@ export default function SignupClient() {
       router.replace(nextUrl);
     } catch (err: any) {
       setError(typeof err?.message === "string" ? err.message : "Sign up failed.");
-    } finally {
       setBusy(false);
     }
   }
 
   return (
     <AuthShell
-      variant="signup"
+      title="Create your account."
+      subtitle="Start a private workspace. One calm step at a time."
       cardTitle="Create account"
-      footerLeft={
+      footnote={
         <span>
           Already have an account?{" "}
           <a className="pr-auth-link" href={`/login?next=${encodeURIComponent(nextUrl)}`}>
             Sign in
           </a>
-        </span>
-      }
-      footerRight={
-        <a className="pr-auth-link" href="/">
-          Back home
-        </a>
-      }
-      finePrint={
-        <span>
-          By continuing, you’re creating a private workspace designed to help you clarify what matters and commit with
-          confidence.
+          {" · "}
+          <a className="pr-auth-link" href="/">
+            Back home
+          </a>
         </span>
       }
     >
-      <form onSubmit={onSubmit}>
-        <div className="pr-auth-field">
-          <div className="pr-auth-label">Name (optional)</div>
+      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
+        <div className="pr-auth-field" style={{ display: "grid", gap: 6 }}>
+          <div className="pr-auth-label" style={{ fontSize: 13, opacity: 0.85 }}>
+            Name (optional)
+          </div>
           <input
             className="pr-auth-input"
             value={name}
@@ -115,20 +115,25 @@ export default function SignupClient() {
           />
         </div>
 
-        <div className="pr-auth-field">
-          <div className="pr-auth-label">Email</div>
+        <div className="pr-auth-field" style={{ display: "grid", gap: 6 }}>
+          <div className="pr-auth-label" style={{ fontSize: 13, opacity: 0.85 }}>
+            Email
+          </div>
           <input
             className="pr-auth-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            inputMode="email"
             placeholder="you@company.com"
             disabled={busy}
           />
         </div>
 
-        <div className="pr-auth-field">
-          <div className="pr-auth-label">Password</div>
+        <div className="pr-auth-field" style={{ display: "grid", gap: 6 }}>
+          <div className="pr-auth-label" style={{ fontSize: 13, opacity: 0.85 }}>
+            Password
+          </div>
           <input
             className="pr-auth-input"
             type="password"
