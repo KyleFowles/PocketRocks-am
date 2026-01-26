@@ -11,9 +11,11 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import AuthShell from "@/components/ui/AuthShell";
 import { getFirebaseApp } from "@/lib/firebaseClient";
 
-export default function LoginClient({ nextUrl }: { nextUrl: string }) {
+export default function LoginClient({ nextUrl }: { nextUrl?: string }) {
   const router = useRouter();
-  const sp = useSearchParams();
+  
+  const searchParams = useSearchParams();
+const sp = useSearchParams();
 
   const resolvedNext = useMemo(() => {
     const raw = sp?.get("next");
@@ -63,7 +65,6 @@ export default function LoginClient({ nextUrl }: { nextUrl: string }) {
 
   return (
     <AuthShell
-      mode="login"
       title="Welcome back."
       subtitle="Pick up where you left off. One calm step at a time."
       cardTitle="Sign in"
