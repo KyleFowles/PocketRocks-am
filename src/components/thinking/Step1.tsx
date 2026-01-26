@@ -1,7 +1,8 @@
 /* ============================================================
    FILE: src/components/thinking/Step1.tsx
-   PURPOSE: Step 1 — Guided Turns (compatible with current ThinkingTurn API)
-            Turn vague concern into a clear, shared problem.
+   PURPOSE: Step 1 — Guided Turns (stable locking)
+            - Draft input does NOT auto-advance
+            - Only advances on explicit Continue/choice click
    ============================================================ */
 
 "use client";
@@ -17,15 +18,24 @@ function cleanOneLine(s: string) {
 }
 
 export default function Step1() {
-  const [t1, setT1] = useState<string>("");
-  const [t2, setT2] = useState<string>("");
-  const [t3, setT3] = useState<Shift | "">("");
-  const [t4, setT4] = useState<"tighten" | "adjust" | "right" | "">("");
+  // Turn 1
+  const [t1Draft, setT1Draft] = useState<string>("");
+  const [t1, setT1] = useState<string | null>(null);
 
-  const locked1 = Boolean(cleanOneLine(t1));
-  const locked2 = Boolean(cleanOneLine(t2));
-  const locked3 = Boolean(t3);
-  const locked4 = Boolean(t4);
+  // Turn 2
+  const [t2Draft, setT2Draft] = useState<string>("");
+  const [t2, setT2] = useState<string | null>(null);
+
+  // Turn 3 (choice)
+  const [t3, setT3] = useState<Shift | null>(null);
+
+  // Turn 4 (choice)
+  const [t4, setT4] = useState<"tighten" | "adjust" | "right" | null>(null);
+
+  const locked1 = t1 !== null;
+  const locked2 = t2 !== null;
+  const locked3 = t3 !== null;
+  const locked4 = t4 !== null;
 
   const shiftLabel = useMemo(() => {
     if (t3 === "faster") return "faster response";
@@ -37,8 +47,8 @@ export default function Step1() {
   }, [t3]);
 
   const draft = useMemo(() => {
-    const a = cleanOneLine(t1);
-    const b = cleanOneLine(t2);
+    const a = cleanOneLine(t1 || "");
+    const b = cleanOneLine(t2 || "");
     if (!a) return "";
     const parts: string[] = [];
     parts.push(a);
@@ -46,6 +56,18 @@ export default function Step1() {
     if (shiftLabel) parts.push(`Primary shift: ${shiftLabel}.`);
     return parts.join(" ");
   }, [t1, t2, shiftLabel]);
+
+  function commitTurn1() {
+    const v = cleanOneLine(t1Draft);
+    if (!v) return;
+    setT1(v);
+  }
+
+  function commitTurn2() {
+    const v = cleanOneLine(t2Draft);
+    if (!v) return;
+    setT2(v);
+  }
 
   return (
     <ThinkingSurface title="Step 1" subtitle="Turn a vague concern into a clear, shared problem.">
@@ -58,10 +80,16 @@ export default function Step1() {
       >
         <div style={{ display: "grid", gap: 10 }}>
           <input
-            value={t1}
-            onChange={(e) => setT1(e.target.value)}
+            value={locked1 ? (t1 || "") : t1Draft}
+            onChange={(e) => setT1Draft(e.target.value)}
             placeholder="e.g., Our customer service feels inconsistent."
             disabled={locked1}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitTurn1();
+              }
+            }}
             style={{
               height: 46,
               borderRadius: 12,
@@ -72,11 +100,12 @@ export default function Step1() {
               outline: "none",
             }}
           />
+
           {!locked1 ? (
             <button
               type="button"
-              onClick={() => setT1(cleanOneLine(t1))}
-              disabled={!cleanOneLine(t1)}
+              onClick={commitTurn1}
+              disabled={!cleanOneLine(t1Draft)}
               style={{
                 height: 46,
                 borderRadius: 14,
@@ -85,8 +114,8 @@ export default function Step1() {
                   "linear-gradient(180deg, rgba(255,121,0,0.92), rgba(240,78,35,0.78))",
                 color: "#ffffff",
                 fontWeight: 900,
-                cursor: !cleanOneLine(t1) ? "not-allowed" : "pointer",
-                opacity: !cleanOneLine(t1) ? 0.6 : 1,
+                cursor: !cleanOneLine(t1Draft) ? "not-allowed" : "pointer",
+                opacity: !cleanOneLine(t1Draft) ? 0.6 : 1,
               }}
             >
               Continue
@@ -99,16 +128,22 @@ export default function Step1() {
       {locked1 ? (
         <ThinkingTurn
           systemLead="Turn 2"
-          systemOutput={`Got it. You said: “${cleanOneLine(t1)}”`}
+          systemOutput={`Got it. You said: “${t1}”`}
           prompt="If this is better in 30 days, what would people notice first?"
           locked={locked2}
         >
           <div style={{ display: "grid", gap: 10 }}>
             <input
-              value={t2}
-              onChange={(e) => setT2(e.target.value)}
+              value={locked2 ? (t2 || "") : t2Draft}
+              onChange={(e) => setT2Draft(e.target.value)}
               placeholder="e.g., Customers get answers within 1 business day."
               disabled={locked2}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitTurn2();
+                }
+              }}
               style={{
                 height: 46,
                 borderRadius: 12,
@@ -119,11 +154,12 @@ export default function Step1() {
                 outline: "none",
               }}
             />
+
             {!locked2 ? (
               <button
                 type="button"
-                onClick={() => setT2(cleanOneLine(t2))}
-                disabled={!cleanOneLine(t2)}
+                onClick={commitTurn2}
+                disabled={!cleanOneLine(t2Draft)}
                 style={{
                   height: 46,
                   borderRadius: 14,
@@ -132,8 +168,8 @@ export default function Step1() {
                     "linear-gradient(180deg, rgba(255,121,0,0.92), rgba(240,78,35,0.78))",
                   color: "#ffffff",
                   fontWeight: 900,
-                  cursor: !cleanOneLine(t2) ? "not-allowed" : "pointer",
-                  opacity: !cleanOneLine(t2) ? 0.6 : 1,
+                  cursor: !cleanOneLine(t2Draft) ? "not-allowed" : "pointer",
+                  opacity: !cleanOneLine(t2Draft) ? 0.6 : 1,
                 }}
               >
                 Continue
@@ -169,7 +205,7 @@ export default function Step1() {
                   padding: "12px 12px",
                   borderRadius: 14,
                   border: "1px solid rgba(255,255,255,0.12)",
-                  background: t3 == v ? "rgba(255,121,0,0.12)" : "rgba(255,255,255,0.06)",
+                  background: t3 === v ? "rgba(255,121,0,0.12)" : "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
                   fontWeight: 800,
                   cursor: locked3 ? "not-allowed" : "pointer",
@@ -206,7 +242,7 @@ export default function Step1() {
                   padding: "12px 12px",
                   borderRadius: 14,
                   border: "1px solid rgba(255,255,255,0.12)",
-                  background: t4 == v ? "rgba(255,121,0,0.12)" : "rgba(255,255,255,0.06)",
+                  background: t4 === v ? "rgba(255,121,0,0.12)" : "rgba(255,255,255,0.06)",
                   color: "rgba(255,255,255,0.92)",
                   fontWeight: 800,
                   cursor: locked4 ? "not-allowed" : "pointer",
@@ -215,6 +251,7 @@ export default function Step1() {
                 {label}
               </button>
             ))}
+
             {locked4 ? (
               <div style={{ marginTop: 14, opacity: 0.78, fontSize: 13, lineHeight: 1.5 }}>
                 Step 1 complete. Next, we’ll turn this into a SMART goal with milestones.
