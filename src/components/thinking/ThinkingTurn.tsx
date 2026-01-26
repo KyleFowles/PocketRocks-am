@@ -40,3 +40,6 @@ export function ThinkingTurn({
     </section>
   );
 }
+
+// Default export alias (for convenience)
+export default ThinkingTurn;

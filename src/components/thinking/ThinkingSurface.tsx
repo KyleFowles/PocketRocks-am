@@ -46,3 +46,6 @@ export function ThinkingSurface({
     </div>
   );
 }
+
+// Default export alias (for convenience)
+export default ThinkingSurface;
