@@ -1,13 +1,16 @@
 /* ============================================================
    FILE: src/components/thinking/ThinkingSurface.tsx
-   PURPOSE: Centered, calm thinking surface (not chat UI)
+   PURPOSE:
+   - World-class PocketRocks Thinking Surface container
+   - Clear hierarchy: Page heading -> Surface -> Turns
+   - Avoids “box inside box” heaviness
    ============================================================ */
 
 "use client";
 
 import React from "react";
 
-export function ThinkingSurface({
+export default function ThinkingSurface({
   title,
   subtitle,
   rightSlot,
@@ -19,33 +22,118 @@ export function ThinkingSurface({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <header className="sticky top-0 z-10 border-b border-neutral-900 bg-neutral-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+    <div style={{ width: "100%" }}>
+      {/* Page header */}
+      <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           <div>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <h1 className="text-lg tracking-tight">
-                <span className="pr-brand">PocketRocks</span>
-              </h1>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                opacity: 0.65,
+                marginBottom: 6,
+              }}
+            >
+              PocketRocks Thinking
             </div>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 28,
+                lineHeight: 1.1,
+                fontWeight: 900,
+                letterSpacing: "-0.02em",
+                color: "rgba(246,247,251,0.98)",
+              }}
+            >
+              {title}
+            </h1>
+
             {subtitle ? (
-              <p className="mt-1 text-sm text-neutral-400">{subtitle}</p>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 14,
+                  lineHeight: 1.45,
+                  maxWidth: 72 * 10, // ~720px
+                  opacity: 0.78,
+                }}
+              >
+                {subtitle}
+              </div>
             ) : null}
           </div>
-          <div className="flex items-center gap-3">{rightSlot}</div>
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <div className="rounded-2xl border border-neutral-900 bg-neutral-950/40 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
-          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-          <div className="mt-6 space-y-6">{children}</div>
+          {rightSlot ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {rightSlot}
+            </div>
+          ) : null}
         </div>
-      </main>
+      </div>
+
+      {/* Surface */}
+      <div
+        className="pr-surface"
+        style={{
+          maxWidth: 980,
+          borderRadius: 22,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            padding: 18,
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              opacity: 0.7,
+            }}
+          >
+            Guided Turns
+          </div>
+
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "8px 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.04)",
+              opacity: 0.85,
+            }}
+          >
+            Step 1
+          </div>
+        </div>
+
+        <div style={{ padding: 18 }}>
+          <div style={{ display: "grid", gap: 14 }}>{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
-
-// Default export alias (for convenience)
-export default ThinkingSurface;
