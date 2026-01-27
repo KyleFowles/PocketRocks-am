@@ -1,13 +1,15 @@
 /* ============================================================
    FILE: src/components/thinking/ThinkingTurn.tsx
    PURPOSE:
-   - World-class PocketRocks Thinking Turn
-   - Quiet input + iPhone sticky CTA + subtle reveal animation
+   - PocketRocks Thinking Turn (compact, above-the-fold)
+   - Uses globals.css classes (pr-turn / pr-turn-inner / pr-btn / pr-input)
+   - Keeps interactivity hardened (z-index + pointerEvents)
+   - Forces focus into the active input so typing always works.
    ============================================================ */
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ThinkingTurn({
   systemLead,
@@ -22,34 +24,40 @@ export default function ThinkingTurn({
   locked: boolean;
   children: React.ReactNode;
 }) {
+  const cls = [
+    "pr-turn",
+    locked ? "pr-turn-done" : "",
+    locked ? "" : "pr-turn--animate",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <section
-      className={locked ? "" : "pr-turn--animate"}
+      className={cls}
       style={{
-        borderRadius: 20,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: locked
-          ? "rgba(255,255,255,0.035)"
-          : "rgba(255,255,255,0.05)",
-        boxShadow: locked ? "none" : "0 18px 55px rgba(0,0,0,0.35)",
-        transition: "opacity 180ms ease",
-        opacity: locked ? 0.62 : 1,
+        position: "relative",
+        borderRadius: 18,
         overflow: "hidden",
       }}
     >
+      {/* Header bar (compact) */}
       <div
         style={{
-          padding: "12px 14px",
+          position: "relative",
+          zIndex: 1,
+          padding: "10px 12px",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 10,
+          background: "rgba(0,0,0,0.10)",
         }}
       >
         <div
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 900,
             letterSpacing: "0.18em",
             textTransform: "uppercase",
@@ -61,26 +69,28 @@ export default function ThinkingTurn({
 
         <div
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 850,
-            padding: "6px 10px",
+            padding: "5px 9px",
             borderRadius: 999,
             border: locked
               ? "1px solid rgba(255,255,255,0.10)"
               : "1px solid rgba(255,121,0,0.22)",
-            background: locked ? "rgba(0,0,0,0.20)" : "rgba(255,121,0,0.10)",
-            opacity: 0.85,
+            background: locked ? "rgba(0,0,0,0.18)" : "rgba(255,121,0,0.10)",
+            opacity: 0.88,
+            whiteSpace: "nowrap",
           }}
         >
           {locked ? "Locked" : "Active"}
         </div>
       </div>
 
-      <div style={{ padding: 16 }}>
+      {/* Body */}
+      <div className="pr-turn-inner" style={{ position: "relative", zIndex: 2, pointerEvents: "auto" }}>
         <div
           style={{
-            fontSize: 18,
-            lineHeight: 1.25,
+            fontSize: 17,
+            lineHeight: 1.18,
             fontWeight: 950,
             letterSpacing: "-0.01em",
             color: "rgba(246,247,251,0.98)",
@@ -92,21 +102,23 @@ export default function ThinkingTurn({
         {systemOutput ? (
           <div
             style={{
-              marginTop: 10,
-              padding: "12px 12px",
-              borderRadius: 16,
+              marginTop: 8,
+              padding: "10px 10px",
+              borderRadius: 14,
               border: "1px solid rgba(255,255,255,0.10)",
-              background: "rgba(0,0,0,0.18)",
-              fontSize: 14,
-              lineHeight: 1.45,
-              opacity: 0.9,
+              background: "rgba(0,0,0,0.16)",
+              fontSize: 13.5,
+              lineHeight: 1.4,
+              opacity: 0.92,
             }}
           >
             {systemOutput}
           </div>
         ) : null}
 
-        <div style={{ marginTop: 14 }}>{children}</div>
+        <div style={{ marginTop: 10, position: "relative", zIndex: 3 }}>
+          {children}
+        </div>
       </div>
     </section>
   );
@@ -117,17 +129,29 @@ export function TurnInput({
   onSubmit,
   locked,
   placeholder,
-  ctaLabel = "Continue",
+  ctaLabel = "Next: Make it SMART",
+  hideCta = false,
 }: {
   value: string;
   onSubmit: (val: string) => void;
   locked: boolean;
   placeholder: string;
   ctaLabel?: string;
+  hideCta?: boolean;
 }) {
   const [local, setLocal] = useState(value);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => setLocal(value), [value]);
+
+  // Force focus when this input is active.
+  useEffect(() => {
+    if (locked) return;
+    const t = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 40);
+    return () => window.clearTimeout(t);
+  }, [locked]);
 
   const canSubmit = useMemo(() => local.trim().length >= 2, [local]);
 
@@ -139,8 +163,9 @@ export function TurnInput({
   }
 
   return (
-    <div style={{ display: "grid", gap: 10 }}>
+    <div style={{ display: "grid", gap: 8, position: "relative", zIndex: 5 }}>
       <input
+        ref={inputRef}
         value={local}
         disabled={locked}
         placeholder={placeholder}
@@ -148,27 +173,38 @@ export function TurnInput({
         onKeyDown={(e) => {
           if (e.key === "Enter") submit();
         }}
-        className="pr-input-dark"
+        className="pr-input"
+        style={{
+          position: "relative",
+          zIndex: 10,
+          pointerEvents: "auto",
+        }}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
       />
 
-      {/* Desktop: inline right. iPhone: fixed bottom bar (via CSS). */}
-      <div className="pr-mobile-cta">
-        <button
-          type="button"
-          disabled={locked || !canSubmit}
-          onClick={submit}
-          className="pr-primary"
-          style={{
-            width: "auto",
-            padding: "12px 18px",
-            borderRadius: 14,
-            fontSize: 15,
-            fontWeight: 950,
-          }}
-        >
-          {ctaLabel}
-        </button>
-      </div>
+      {hideCta ? null : (
+        <div className="pr-mobile-cta" style={{ position: "relative", zIndex: 10 }}>
+          <button
+            type="button"
+            disabled={locked || !canSubmit}
+            onClick={submit}
+            className="pr-btn pr-btn-primary"
+            style={{
+              width: "auto",
+              padding: "0 14px",
+              height: 40,
+              borderRadius: 14,
+              fontSize: 14.5,
+              fontWeight: 900,
+              pointerEvents: "auto",
+            }}
+          >
+            {ctaLabel}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -183,18 +219,21 @@ export function TurnChoice({
   locked: boolean;
 }) {
   return (
-    <div style={{ display: "grid", gap: 10 }}>
+    <div style={{ display: "grid", gap: 8, position: "relative", zIndex: 5 }}>
       {options.map((opt) => (
         <button
           key={opt}
           disabled={locked}
           onClick={() => onPick(opt)}
-          className="pr-secondary"
+          className="pr-btn pr-btn-secondary"
           style={{
+            justifyContent: "flex-start",
             textAlign: "left",
-            padding: "14px 14px",
-            borderRadius: 16,
+            padding: "0 12px",
+            height: 40,
+            borderRadius: 14,
             fontWeight: 850,
+            pointerEvents: "auto",
           }}
         >
           {opt}

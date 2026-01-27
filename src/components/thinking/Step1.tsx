@@ -5,19 +5,21 @@
             2) Reflection
             3) Pattern recognition (choice)
             4) Co-drafting confirmation
+
+   FIXES:
+   - Single CTA only (no duplicate “Continue” buttons)
+   - Tighter spacing (reduce below-the-fold)
+   - Upgraded Turn 4 copy (designer-picked)
    ============================================================ */
 
 "use client";
 
 import React, { useMemo, useState } from "react";
 import ThinkingSurface from "@/components/thinking/ThinkingSurface";
-import ThinkingTurn, {
-  TurnChoice,
-  TurnInput,
-} from "@/components/thinking/ThinkingTurn";
+import ThinkingTurn, { TurnChoice, TurnInput } from "@/components/thinking/ThinkingTurn";
 
 type Shift = "faster" | "clearer" | "followthrough" | "surprises" | "other";
-type FinalPick = "tighten" | "adjust" | "right";
+type FinalPick = "sharper" | "aim" | "lock";
 
 function cleanOneLine(s: string) {
   return (s || "").replace(/\s+/g, " ").trim();
@@ -46,30 +48,23 @@ export default function Step1() {
   const draft = useMemo(() => {
     const a = cleanOneLine(t1 || "");
     const b = cleanOneLine(t2 || "");
-
     if (!a) return "";
 
     const parts: string[] = [];
     parts.push(a);
 
-    if (b) {
-      parts.push(
-        `In 30 days, the first thing people would notice is: ${b}.`
-      );
-    }
-
-    if (shiftLabel) {
-      parts.push(`Primary shift: ${shiftLabel}.`);
-    }
+    if (b) parts.push(`In 30 days, the first thing people would notice is: ${b}.`);
+    if (shiftLabel) parts.push(`Primary shift: ${shiftLabel}.`);
 
     return parts.join(" ");
   }, [t1, t2, shiftLabel]);
 
+  function goNext() {
+    window.location.href = "/thinking/step-2";
+  }
+
   return (
-    <ThinkingSurface
-      title="Step 1"
-      subtitle="Turn a vague concern into a clear, shared problem."
-    >
+    <ThinkingSurface title="Step 1" subtitle="Turn a vague concern into a clear, shared problem.">
       {/* Turn 1 */}
       <ThinkingTurn
         systemLead="Turn 1"
@@ -82,6 +77,7 @@ export default function Step1() {
           value={t1 || ""}
           placeholder="e.g., Our customer service feels inconsistent."
           onSubmit={(val) => setT1(val)}
+          ctaLabel="Continue"
         />
       </ThinkingTurn>
 
@@ -98,6 +94,7 @@ export default function Step1() {
             value={t2 || ""}
             placeholder="e.g., Customers get answers within 1 business day."
             onSubmit={(val) => setT2(val)}
+            ctaLabel="Continue"
           />
         </ThinkingTurn>
       ) : null}
@@ -137,42 +134,81 @@ export default function Step1() {
       {locked3 ? (
         <ThinkingTurn
           systemLead="Turn 4"
-          systemOutput="Here’s the draft problem statement PocketRocks heard:"
-          prompt="How should we proceed?"
+          systemOutput="Here’s what I heard. Choose one move."
+          prompt="Lock the statement."
           locked={locked4}
         >
+          {/* Draft panel (tight) */}
           <div
-            className="pr-surface"
             style={{
-              padding: 14,
-              marginBottom: 14,
-              background: "rgba(255,255,255,0.04)",
+              marginTop: 6,
+              padding: 10,
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.10)",
+              background: "rgba(0,0,0,0.14)",
             }}
           >
-            <div style={{ fontSize: 14, lineHeight: 1.5, opacity: 0.92 }}>
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.7,
+                letterSpacing: "0.10em",
+                fontWeight: 900,
+                textTransform: "uppercase",
+              }}
+            >
+              Current draft
+            </div>
+
+            <div style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.4, opacity: 0.94 }}>
               {draft}
             </div>
           </div>
 
-          <TurnChoice
-            locked={locked4}
-            options={["Tighten wording", "Adjust outcome", "This is right"]}
-            onPick={(label) => {
-              const map: Record<string, FinalPick> = {
-                "Tighten wording": "tighten",
-                "Adjust outcome": "adjust",
-                "This is right": "right",
-              };
-              setT4(map[label] || "right");
-            }}
-          />
+          {/* Choices (new copy) */}
+          <div style={{ marginTop: 10 }}>
+            <TurnChoice
+              locked={locked4}
+              options={["Make it sharper", "Aim it at the real result", "Lock it in"]}
+              onPick={(label) => {
+                const map: Record<string, FinalPick> = {
+                  "Make it sharper": "sharper",
+                  "Aim it at the real result": "aim",
+                  "Lock it in": "lock",
+                };
+                setT4(map[label] || "lock");
+              }}
+            />
+          </div>
 
-          {locked4 ? (
-            <div style={{ marginTop: 14 }} className="pr-body">
-              Step 1 complete. Next, we’ll turn this into a SMART goal with
-              milestones.
+          {/* Helper + single CTA */}
+          <div style={{ marginTop: 10 }}>
+            <div
+              style={{
+                fontSize: 12.5,
+                lineHeight: 1.35,
+                opacity: locked4 ? 0.86 : 0.72,
+                marginBottom: 8,
+              }}
+            >
+              {locked4 ? "Locked. Next we make it SMART with milestones." : "One choice, then we move."}
             </div>
-          ) : null}
+
+            <button
+              type="button"
+              className="pr-btn pr-btn-primary"
+              onClick={goNext}
+              disabled={!locked4}
+              style={{
+                width: "min(360px, 100%)",
+                height: 42,
+                fontWeight: 900,
+                fontSize: 14.5,
+              }}
+            >
+              Next: Make it SMART
+            </button>
+          </div>
         </ThinkingTurn>
       ) : null}
     </ThinkingSurface>

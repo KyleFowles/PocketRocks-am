@@ -1,19 +1,19 @@
 /* ============================================================
    FILE: src/lib/firebaseClient.ts
-   PURPOSE: Safe Firebase client init (never crashes at import)
+   PURPOSE: Safe Firebase client init (lazy + never crashes at import)
 
-   Fixes:
-   - Prevents Turbopack/RSC from crashing when env vars load late
-   - Avoids import-time requireEnv() failures
-   - Ensures Firebase only initializes when config is truly ready
+   Key rules:
+   - Do NOT initialize Firebase at import time
+   - Only initialize inside getter functions
+   - Provide service getters: getFirebaseApp(), getFirebaseAuth(), getFirestoreDb()
 
    ============================================================ */
 
 "use client";
 
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 /* ------------------------------------------------------------
    Lazy-safe config loader
@@ -26,9 +26,7 @@ function getFirebaseConfig() {
 
   // If env is not ready yet, do NOT crash during module import
   if (!apiKey || !authDomain || !projectId) {
-    console.warn(
-      "⚠ Firebase env not loaded yet — skipping init until ready."
-    );
+    // This can happen in some dev/build phases. We fail only when services are requested.
     return null;
   }
 
@@ -43,15 +41,15 @@ function getFirebaseConfig() {
 }
 
 /* ------------------------------------------------------------
-   Firebase App Singleton
+   Firebase App Singleton (lazy)
    ------------------------------------------------------------ */
 
-export function getFirebaseApp() {
+export function getFirebaseApp(): FirebaseApp {
   const config = getFirebaseConfig();
 
   if (!config) {
     throw new Error(
-      "Firebase config missing. Confirm NEXT_PUBLIC_FIREBASE_* env vars exist in .env.local."
+      "Firebase config missing. Confirm NEXT_PUBLIC_FIREBASE_* env vars exist in .env.local and in your deploy env."
     );
   }
 
@@ -59,20 +57,13 @@ export function getFirebaseApp() {
 }
 
 /* ------------------------------------------------------------
-   Firebase Services
+   Firebase Services (lazy)
    ------------------------------------------------------------ */
 
-export function getFirebaseAuth() {
+export function getFirebaseAuth(): Auth {
   return getAuth(getFirebaseApp());
 }
 
-export function getFirestoreDb() {
+export function getFirestoreDb(): Firestore {
   return getFirestore(getFirebaseApp());
 }
-
-/* ------------------------------------------------------------
-   Convenience Exports
-   ------------------------------------------------------------ */
-
-export const auth = getFirebaseAuth();
-export const db = getFirestoreDb();

@@ -1,146 +1,205 @@
 /* ============================================================
    FILE: src/app/(auth)/login/LoginClient.tsx
-   PURPOSE: Login UI using premium AuthShell
+   PURPOSE: Client-side login form
+            - Signs in with Firebase Auth
+            - Mints server session cookie (pr_session) via POST /api/session
+            - Waits until server confirms cookie is visible
+            - Hands off to /session/ready?next=... for deterministic redirect
    ============================================================ */
 
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import AuthShell from "@/components/ui/AuthShell";
+import { useRouter } from "next/navigation";
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { getFirebaseApp } from "@/lib/firebaseClient";
 
-export default function LoginClient({ nextUrl }: { nextUrl?: string }) {
-  const router = useRouter();
-  
-  const searchParams = useSearchParams();
-const sp = useSearchParams();
+type SessionStatus = {
+  ok: boolean;
+  hasSession?: boolean;
+  verified?: boolean;
+  uid?: string;
+  cookieName?: string;
+  error?: string;
+};
 
-  const resolvedNext = useMemo(() => {
-    const raw = sp?.get("next");
-    if (typeof raw === "string" && raw.startsWith("/")) return raw;
-    if (nextUrl?.startsWith("/")) return nextUrl;
-    return "/thinking";
-  }, [sp, nextUrl]);
+function safeNext(nextUrl: string): string {
+  const v = (nextUrl || "").trim();
+  if (!v) return "/dashboard";
+  if (!v.startsWith("/")) return "/dashboard";
+  if (v.startsWith("//")) return "/dashboard";
+  if (v.includes("://")) return "/dashboard";
+  if (v.startsWith("/login")) return "/dashboard";
+  return v;
+}
+
+async function mintSessionCookie(idToken: string) {
+  const res = await fetch("/api/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    credentials: "include",
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(
+      `Session cookie mint failed: ${res.status} ${res.statusText}${txt ? ` — ${txt}` : ""}`
+    );
+  }
+}
+
+async function readSessionStatus(): Promise<SessionStatus> {
+  const res = await fetch("/api/session", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  const json = (await res.json().catch(() => null)) as any;
+
+  return {
+    ok: Boolean(json?.ok),
+    hasSession: Boolean(json?.hasSession),
+    verified: Boolean(json?.verified),
+    uid: typeof json?.uid === "string" ? json.uid : undefined,
+    cookieName: typeof json?.cookieName === "string" ? json.cookieName : undefined,
+    error: typeof json?.error === "string" ? json.error : undefined,
+  };
+}
+
+async function waitForServerToSeeCookie(maxMs = 2200) {
+  const started = Date.now();
+  let last: SessionStatus | null = null;
+
+  while (Date.now() - started < maxMs) {
+    last = await readSessionStatus();
+    if (last.ok && last.hasSession && last.verified) return last;
+    await new Promise((r) => setTimeout(r, 180));
+  }
+
+  return last;
+}
+
+export default function LoginClient({ nextUrl }: { nextUrl: string }) {
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [show, setShow] = useState(false);
+
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const target = useMemo(() => safeNext(nextUrl), [nextUrl]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
 
-    setErr(null);
     setBusy(true);
+    setError(null);
 
     try {
       const app = getFirebaseApp();
       const auth = getAuth(app);
 
+      await setPersistence(auth, browserLocalPersistence);
+
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      const idToken = await cred.user.getIdToken();
+      const idToken = await cred.user.getIdToken(true);
 
-      const res = await fetch("/session/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
+      // 1) Mint cookie
+      await mintSessionCookie(idToken);
 
-      const data = await res.json().catch(() => null);
+      // 2) Wait until the server confirms it actually sees the cookie
+      const status = await waitForServerToSeeCookie(2400);
 
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "Login failed");
+      if (!status?.hasSession) {
+        throw new Error(
+          `Cookie was not stored. /api/session says hasSession=false. This is usually a host mismatch (localhost vs 192.168.x.x), or a cookie policy issue.`
+        );
       }
 
-      router.replace(resolvedNext);
-    } catch (e: any) {
-      setErr(typeof e?.message === "string" ? e.message : "Login failed");
+      // 3) Deterministic redirect via server-verified handoff
+      router.replace(`/session/ready?next=${encodeURIComponent(target)}`);
+      router.refresh();
+    } catch (err: any) {
+      const msg =
+        typeof err?.message === "string"
+          ? err.message
+          : "Login failed. Please try again.";
+      setError(msg);
       setBusy(false);
     }
   }
 
   return (
-    <AuthShell
-      title="Welcome back."
-      subtitle="Pick up where you left off. One calm step at a time."
-      cardTitle="Sign in"
-    >
+    <main style={{ maxWidth: 520, margin: "40px auto", padding: "0 16px" }}>
+      <h1 style={{ fontSize: 28, marginBottom: 8 }}>Sign in</h1>
+      <p style={{ marginTop: 0, opacity: 0.75, marginBottom: 24 }}>
+        After sign-in, you’ll continue automatically.
+      </p>
+
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 13, opacity: 0.85 }}>Email</label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ fontWeight: 600 }}>Email</span>
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
             inputMode="email"
-            placeholder="you@company.com"
+            autoComplete="email"
+            placeholder="you@example.com"
+            required
             style={{
-              height: 46,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(0,0,0,0.20)",
-              color: "rgba(255,255,255,0.92)",
-              padding: "0 14px",
-              outline: "none",
+              padding: "12px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+              fontSize: 16,
             }}
           />
-        </div>
+        </label>
 
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontSize: 13, opacity: 0.85 }}>Password</label>
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              type={show ? "text" : "password"}
-              placeholder="Your password"
-              style={{
-                flex: 1,
-                height: 46,
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(0,0,0,0.20)",
-                color: "rgba(255,255,255,0.92)",
-                padding: "0 14px",
-                outline: "none",
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShow((s) => !s)}
-              style={{
-                height: 46,
-                padding: "0 14px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.06)",
-                color: "rgba(255,255,255,0.86)",
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              {show ? "Hide" : "Show"}
-            </button>
-          </div>
-        </div>
-
-        {err ? (
-          <div
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ fontWeight: 600 }}>Password</span>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            required
             style={{
-              borderRadius: 12,
-              border: "1px solid rgba(255,121,0,0.35)",
-              background: "rgba(255,121,0,0.08)",
+              padding: "12px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+              fontSize: 16,
+            }}
+          />
+        </label>
+
+        {error ? (
+          <div
+            role="alert"
+            style={{
               padding: "10px 12px",
-              fontSize: 13,
-              color: "rgba(255,255,255,0.9)",
+              borderRadius: 10,
+              background: "rgba(240, 78, 35, 0.12)",
+              border: "1px solid rgba(240, 78, 35, 0.35)",
             }}
           >
-            {err}
+            <strong style={{ display: "block", marginBottom: 4 }}>
+              Couldn’t sign in
+            </strong>
+            <span style={{ opacity: 0.85 }}>{error}</span>
           </div>
         ) : null}
 
@@ -148,22 +207,20 @@ const sp = useSearchParams();
           type="submit"
           disabled={busy}
           style={{
-            height: 48,
-            borderRadius: 14,
-            border: "1px solid rgba(255,121,0,0.35)",
-            background:
-              "linear-gradient(180deg, rgba(255,121,0,0.92), rgba(240,78,35,0.78))",
-            color: "#ffffff",
-            fontWeight: 900,
-            letterSpacing: 0.2,
+            marginTop: 8,
+            padding: "12px 14px",
+            borderRadius: 12,
+            border: "none",
             cursor: busy ? "not-allowed" : "pointer",
-            opacity: busy ? 0.7 : 1,
-            boxShadow: "0 16px 40px rgba(255,121,0,0.12)",
+            fontSize: 16,
+            fontWeight: 800,
+            background: "#FF7900",
+            color: "#FFFFFF",
           }}
         >
-          {busy ? "Signing in..." : "Sign in"}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
-    </AuthShell>
+    </main>
   );
 }
